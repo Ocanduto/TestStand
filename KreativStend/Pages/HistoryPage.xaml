@@ -1,0 +1,39 @@
+﻿<Page x:Class="KreativStend.Pages.HistoryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:c="clr-namespace:KreativStend.Components"
+      xmlns:props="clr-namespace:KreativStend.Properties"
+      xmlns:local="clr-namespace:KreativStend.Pages"
+      xmlns:vm="clr-namespace:KreativStend.ViewModels"
+      mc:Ignorable="d" 
+      Title="HistoryPage"
+      d:DesignHeight="800" d:DesignWidth="800"
+      MaxWidth="800"
+      Background="#B3B3B3"
+      d:DataContext="{d:DesignInstance Type=vm:HistoryVM, IsDesignTimeCreatable=False}">
+
+    <c:ModalControl Header="История" DataContext="{Binding}" MinWidth="800" MinHeight="600" ContentVerticalAlignment="Stretch">
+        <ListView ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Width="150" DisplayMemberBinding="{Binding CreateDate}">Дата</GridViewColumn>
+                    <GridViewColumn Width="210" DisplayMemberBinding="{Binding TestType}">Модификация</GridViewColumn>
+                    <GridViewColumn Width="210" DisplayMemberBinding="{Binding SerialNumberBridge}">Серийный номер</GridViewColumn>
+                    <GridViewColumn Width="155" DisplayMemberBinding="{Binding Operator}">Оператор</GridViewColumn>
+                </GridView>
+            </ListView.View>
+
+        </ListView>
+
+
+
+        <c:ModalControl.Bottom>
+            <UniformGrid Rows="1">
+                <Button Content="ПРОСМОТР" Command="{Binding Open_Command}" Style="{StaticResource primary}" Visibility="{Binding HasReplay, Converter={StaticResource visibilityConverter}}"/>
+                <Button Content="ОК" Command="{Binding Success_Command}" Style="{StaticResource primary}" Visibility="{Binding HasSuccess, Converter={StaticResource visibilityConverter}}"/>
+            </UniformGrid>
+        </c:ModalControl.Bottom>
+    </c:ModalControl>
+</Page>

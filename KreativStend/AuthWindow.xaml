@@ -1,0 +1,31 @@
+﻿<Window x:Class="KreativStend.AuthWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:c="clr-namespace:KreativStend.Components"
+        xmlns:local="clr-namespace:KreativStend"
+        mc:Ignorable="d"
+        Title="AuthWindow" 
+        Height="450" Width="800"
+        Background="#B3B3B3">
+    <Viewbox>
+        <c:HeaderedGroup Title="АВТОРИЗАЦИЯ" Margin="100" MinWidth="300">
+            <GroupBox Header="Пользователь" Foreground="White">
+                <ComboBox SelectedIndex="0">
+                    <ComboBoxItem Content="Иванов И.И."/>
+                    <ComboBoxItem Content="Петров П.П."/>
+                    <ComboBoxItem Content="Сидоров И.П."/>
+                </ComboBox>
+            </GroupBox>
+            <GroupBox Header="Пароль" Foreground="White">
+                <PasswordBox/>
+            </GroupBox>
+            <Button Content="ВОЙТИ"
+                        HorizontalAlignment="Center"
+                        Background="#00FF00"
+                        Padding="20,5"
+                        Margin="5"/>
+        </c:HeaderedGroup>
+    </Viewbox>
+</Window>

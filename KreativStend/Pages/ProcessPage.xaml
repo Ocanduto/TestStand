@@ -1,0 +1,111 @@
+﻿<Page x:Class="KreativStend.Pages.ProcessPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:c="clr-namespace:KreativStend.Components"
+      xmlns:props="clr-namespace:KreativStend.Properties"
+      xmlns:local="clr-namespace:KreativStend.Pages"
+      xmlns:vm="clr-namespace:KreativStend.ViewModels"
+      mc:Ignorable="d" 
+      Title="NewTestPage"
+      x:Name="root"
+      d:DesignHeight="800" d:DesignWidth="800"
+      MaxWidth="800"
+      Background="#B3B3B3"
+      d:DataContext="{d:DesignInstance Type=vm:ProcessStepsVM, IsDesignTimeCreatable=False}">
+
+    <c:ModalControl Header="{Binding TestType, StringFormat='Новый: {0}'}" DataContext="{Binding}" MinWidth="800" MinHeight="600"  ContentVerticalAlignment="Center">
+        <ItemsControl ItemsSource="{Binding Messages}">
+            <ItemsControl.ItemTemplateSelector>
+                <local:MessageTemplateSelector>
+                    <local:MessageTemplateSelector.Header>
+                        <DataTemplate DataType="vm:MessageVM">
+                            <Border BorderBrush="#000" BorderThickness="1" Margin="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="26" TextWrapping="Wrap" Text="{Binding Message}"/>
+                                    <Button Grid.Column="1" Content="Ручной" FontSize="22" Background="#F93" Padding="10"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.Header>
+                    <local:MessageTemplateSelector.Informer>
+                        <DataTemplate DataType="vm:MessageVM">
+                            <Border BorderBrush="#000" BorderThickness="1" Margin="20,5">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock TextAlignment="Center" VerticalAlignment="Center" FontSize="18" TextWrapping="Wrap" Text="{Binding Message}"/>
+                                    <Border Grid.Column="1" Background="#3F3" Padding="10">
+                                        <Label>OK</Label>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.Informer>
+                    <local:MessageTemplateSelector.Message>
+                        <DataTemplate DataType="vm:MessageVM">
+                            <Border BorderBrush="#F93" BorderThickness="1" Padding="50" Margin="20,10">
+                                <TextBlock TextAlignment="Center" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" Text="{Binding Message}" Foreground="{Binding Foreground}"/>
+                            </Border>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.Message>
+                    <local:MessageTemplateSelector.Warning>
+                        <DataTemplate DataType="vm:MessageVM">
+                            <Border BorderBrush="#F93" Background="#FF0" BorderThickness="1" Padding="50" Margin="20,10">
+                                <TextBlock TextAlignment="Center" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" Text="{Binding Message}"/>
+                            </Border>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.Warning>
+                    <local:MessageTemplateSelector.Editor>
+                        <DataTemplate DataType="vm:EditorMessageVM">
+                            <Grid Margin="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock TextAlignment="Center" VerticalAlignment="Center" FontSize="18" TextWrapping="Wrap" Text="{Binding Message}"/>
+                                <TextBox Grid.Column="1" Text="{Binding Result, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" Padding="10"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Unit}" TextAlignment="Center" Padding="10"/>
+                            </Grid>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.Editor>
+                    <local:MessageTemplateSelector.TwoColumn>
+                        <DataTemplate DataType="vm:TwoColumnMessageVM">
+                            <UniformGrid Margin="20" Columns="2">
+                                <Border BorderBrush="#000" BorderThickness="1" Padding="10">
+                                    <TextBlock Text="{Binding Left}" TextAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                                </Border>
+                                <Border BorderBrush="#000" BorderThickness="1" Padding="10">
+                                    <TextBlock Text="{Binding Right}" TextAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                                </Border>
+                            </UniformGrid>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.TwoColumn>
+                    <local:MessageTemplateSelector.Selector>
+                        <DataTemplate DataType="vm:CommandsMessageVM">
+                            <ComboBox ItemsSource="{Binding Commands}" SelectedIndex="{Binding ElementName=root, Path=SelectedTypeIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataTemplate>
+                    </local:MessageTemplateSelector.Selector>
+                </local:MessageTemplateSelector>
+            </ItemsControl.ItemTemplateSelector>
+        </ItemsControl>
+
+
+
+        <c:ModalControl.Bottom>
+            <UniformGrid Rows="1">
+                <Button Content="ОТМЕНИТЬ" Command="{Binding Cancel_Command}" Style="{StaticResource danger}"/>
+                <Button Content="ПОВТОР" Command="{Binding Replay_Command}" Style="{StaticResource normal}" Visibility="{Binding HasReplay, Converter={StaticResource visibilityConverter}}"/>
+                <Button Content="ОК" Command="{Binding Success_Command}" Style="{StaticResource primary}" Visibility="{Binding HasSuccess, Converter={StaticResource visibilityConverter}}"/>
+            </UniformGrid>
+        </c:ModalControl.Bottom>
+    </c:ModalControl>
+</Page>

@@ -1,0 +1,68 @@
+﻿<Window x:Class="KreativStend.ErrorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KreativStend"
+        xmlns:vm="clr-namespace:KreativStend.ViewModels"
+        mc:Ignorable="d"
+        Title="Окно ошибок" 
+        Height="700" Width="1400"
+        WindowStartupLocation="CenterOwner"
+        DataContext="{Binding Source={x:Static local:App.ProcessKeys}}">
+
+    <DockPanel LastChildFill="True">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Список -->
+            <ListBox ItemsSource="{Binding ActiveErrors}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Code}"
+                           FontWeight="Bold"
+                           Width="60"/>
+                            <TextBlock Text="{Binding Message}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Чекбоксы -->
+            <StackPanel Grid.Column="1"
+                Margin="10"
+                VerticalAlignment="Top">
+
+                <CheckBox Content="IsConnected"
+                  IsChecked="{Binding IsConnected}"
+                  IsHitTestVisible="False"
+                  Focusable="False"/>
+
+                <CheckBox Content="IsConnected_1"
+                  IsChecked="{Binding IsConnected_1}"
+                  IsHitTestVisible="False"
+                  Focusable="False"/>
+
+                <CheckBox Content="IsConnected_2"
+                  IsChecked="{Binding IsConnected_2}"
+                  IsHitTestVisible="False"
+                  Focusable="False"/>
+
+                <CheckBox Content="IsConnected_3"
+                  IsChecked="{Binding IsConnected_3}"
+                  IsHitTestVisible="False"
+                  Focusable="False"/>
+
+                <CheckBox Content="IsConnected_4"
+                  IsChecked="{Binding IsConnected_4}"
+                  IsHitTestVisible="False"
+                  Focusable="False"/>
+
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>

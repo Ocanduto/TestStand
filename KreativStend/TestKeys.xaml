@@ -1,0 +1,104 @@
+﻿<Window x:Class="KreativStend.TestKeys"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KreativStend"
+        xmlns:vm="clr-namespace:KreativStend.ViewModels"
+        mc:Ignorable="d"
+        Title="Сервисное тестирование" 
+        Height="615" Width="1200"
+        WindowStartupLocation="CenterOwner"
+        DataContext="{Binding Source={x:Static local:App.ProcessKeys}}">
+
+    <DockPanel LastChildFill="True">
+
+        <UniformGrid Columns="3" DockPanel.Dock="Top">
+            <ComboBox ItemsSource="{Binding COMPORTS}" SelectedItem="{Binding COMPORT, UpdateSourceTrigger=PropertyChanged}"/>
+            <Button Content="Подключиться" Command="{Binding OpenConnection}"/>
+            <Button Content="Отключиться" Command="{Binding CloseConnection}"/>
+        </UniformGrid>
+
+        <UniformGrid Columns="2" DockPanel.Dock="Left">
+            <CheckBox Content="Уровень масла верхний" IsChecked="{Binding UM1}"/>
+            <CheckBox Content="Уровень масла нижний" IsChecked="{Binding UM2}"/>
+            <CheckBox Content="Левый барабан в верхнем положении" IsChecked="{Binding L1}"/>
+            <CheckBox Content="Правый барабан в верхнем положении" IsChecked="{Binding R1}"/>
+            <CheckBox Content="Левый барабан в нижнем положении" IsChecked="{Binding L2}"/>
+            <CheckBox Content="Правый барабан в нижнем положении" IsChecked="{Binding R2}"/>
+            <CheckBox Content="Защитный кожух левого барабана открыт" IsChecked="{Binding Case_L_Open}"/>
+            <CheckBox Content="Защитный кожух левого барабана закрыт" IsChecked="{Binding Case_L_Close}"/>
+            <CheckBox Content="Защитный кожух правого барабана открыт" IsChecked="{Binding Case_R_Open}"/>
+            <CheckBox Content="Защитный кожух правого барабана закрыт" IsChecked="{Binding Case_R_Close}"/>
+            <CheckBox Content="Левый первый тормоз включен" IsChecked="{Binding Brake_L1_On}"/>
+            <CheckBox Content="Левый первый тормоз выключен" IsChecked="{Binding Brake_L1_Off}"/>
+            <CheckBox Content="Левый второй тормоз включен" IsChecked="{Binding Brake_L2_On}"/>
+            <CheckBox Content="Левый второй тормоз выключен" IsChecked="{Binding Brake_L2_Off}"/>
+            <CheckBox Content="Правый первый тормоз включен" IsChecked="{Binding Brake_R1_On}"/>
+            <CheckBox Content="Правый первый тормоз выключен" IsChecked="{Binding Brake_R1_Off}"/>
+            <CheckBox Content="Правый второй тормоз включен" IsChecked="{Binding Brake_R2_On}"/>
+            <CheckBox Content="Правый второй тормоз выключен" IsChecked="{Binding Brake_R2_Off}"/>
+            <TextBox Text="{Binding DD1_1}"/>
+            <TextBox Text="{Binding DD1_2}"/>
+            <TextBox Text="{Binding DD2_1}"/>
+            <TextBox Text="{Binding DD2_2}"/>
+            <TextBox Text="{Binding TM1}"/>
+            <TextBox Text="{Binding Counters[0]}"/>
+            <TextBox Text="{Binding Counters[1]}"/>
+            <TextBox Text="{Binding Torque}"/>
+            <TextBox Text="{Binding Speed}"/>
+            <!--<CheckBox Content="RD2" IsChecked="{Binding RD2}"/>
+            <CheckBox Content="RD3" IsChecked="{Binding RD3}"/>
+            <CheckBox Content="Масло уровень" IsChecked="{Binding IS_OIL_LVL}"/>-->
+            <CheckBox Content="ОШИБКА" IsChecked="{Binding ERROR}"/>
+        </UniformGrid>
+
+        <Border Padding="5" Width="610">
+            <UniformGrid Columns="4" Width="600">
+                <ToggleButton Content="Тены" IsChecked="{Binding Ten}" Style="{StaticResource normal_toggle}"/>
+                
+                <ToggleButton Content="Мотор 1" IsChecked="{Binding M1}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Мотор 2" IsChecked="{Binding M2}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Мотор 3" IsChecked="{Binding M3}" Style="{StaticResource normal_toggle}"/>
+                
+                <ToggleButton Content="K1_M1" IsChecked="{Binding K1_M1}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="K2_M1" IsChecked="{Binding K2_M1}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="K1_M2" IsChecked="{Binding K1_M2}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="K2_M2" IsChecked="{Binding K2_M2}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="K1_M3" IsChecked="{Binding K1_M3}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="K2_M3" IsChecked="{Binding K2_M3}" Style="{StaticResource normal_toggle}"/>
+                
+                <ToggleButton Content="Q_1_Work" IsChecked="{Binding Q_1_Work}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Q_2_Work" IsChecked="{Binding Q_2_Work}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Q_3_Work" IsChecked="{Binding Q_3_Work}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Q_1_Clear" IsChecked="{Binding Q_1_Clear}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Q_2_Clear" IsChecked="{Binding Q_2_Clear}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Q_3_Clear" IsChecked="{Binding Q_3_Clear}" Style="{StaticResource normal_toggle}"/>
+                
+                <ToggleButton Content="Brake_L1" IsChecked="{Binding Brake_L1}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Brake_L2" IsChecked="{Binding Brake_L2}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Brake_R1" IsChecked="{Binding Brake_R1}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Brake_R2" IsChecked="{Binding Brake_R2}" Style="{StaticResource normal_toggle}"/>
+
+                <ToggleButton Content="Block_Dif_12" IsChecked="{Binding Block_Dif_12}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Block_Dif_24" IsChecked="{Binding Block_Dif_24}" Style="{StaticResource normal_toggle}"/>
+
+                <ToggleButton Content="Ger_On" IsChecked="{Binding Ger_On}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Ger_Off" IsChecked="{Binding Ger_Off}" Style="{StaticResource normal_toggle}"/>
+
+                <ToggleButton Content="Motor_Case_L_Open" IsChecked="{Binding Motor_Case_L_Open}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Motor_Case_L_Close" IsChecked="{Binding Motor_Case_L_Close}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Motor_Case_R_Open" IsChecked="{Binding Motor_Case_R_Open}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Motor_Case_R_Close" IsChecked="{Binding Motor_Case_R_Close}" Style="{StaticResource normal_toggle}"/>
+
+                <ToggleButton Content="Set_Speed" IsChecked="{Binding Set_Speed}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Start" IsChecked="{Binding StartMotor}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="Stop" IsChecked="{Binding StopMotor}" Style="{StaticResource normal_toggle}"/>
+
+                <ToggleButton Content="MotorTest" IsChecked="{Binding MotorTest}" Style="{StaticResource normal_toggle}"/>
+                <ToggleButton Content="MotorTest2" IsChecked="{Binding MotorTest2}" Style="{StaticResource normal_toggle}"/>
+            </UniformGrid>
+        </Border>
+
+    </DockPanel>
+</Window>

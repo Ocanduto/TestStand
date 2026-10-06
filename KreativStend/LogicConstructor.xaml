@@ -1,0 +1,80 @@
+﻿<Window x:Class="KreativStend.LogicConstructor"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KreativStend"
+        xmlns:vm="clr-namespace:KreativStend.ViewModels"
+        mc:Ignorable="d"
+        Title="Конструктор" 
+        Height="600" Width="1206"
+        WindowStartupLocation="CenterOwner">
+    <Window.DataContext>
+        <vm:LogicConstructorVM/>
+    </Window.DataContext>
+    <Window.Resources>
+        <CollectionViewSource x:Key="functions" Source="{Binding Functions}"/>
+    </Window.Resources>
+    <DockPanel LastChildFill="True">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Открыть" Command="{Binding OpenFile}"/>
+                <MenuItem Header="Сохранить" Command="{Binding SaveFile}"/>
+            </MenuItem>
+        </Menu>
+        <ToolBarTray DockPanel.Dock="Top" Orientation="Horizontal">
+            <ToolBar>
+                <Button Content="Добавить" Command="{Binding CreateItem}"/>
+                <Button Content="Удалить" Command="{Binding RemoveItem}"/>
+            </ToolBar>
+            <ToolBar >
+                <Button Content="Выше" Command="{Binding UpItem}"/>
+                <Button Content="Ниже" Command="{Binding DownItem}"/>
+            </ToolBar>
+            <ToolBar >
+                <Button Content="Клонировать" Command="{Binding CloneItem}"/>
+            </ToolBar>
+        </ToolBarTray>
+        <DataGrid x:Name="dataGrid" ItemsSource="{Binding LogicItems}" SelectedItem="{Binding SelectedItem, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Операция" Width="*" Binding="{Binding Operation, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridComboBoxColumn Header="Функция" MinWidth="80" ItemsSource="{Binding Source={StaticResource functions}}" SelectedItemBinding="{Binding Function, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridTextColumn Header="Операция" MinWidth="80" Binding="{Binding FunctionArgs, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridTextColumn Header="Переменная" MinWidth="80" Binding="{Binding Variable, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Мотор 1" MinWidth="30" Binding="{Binding M1, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Мотор 2" MinWidth="30" Binding="{Binding M2, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Мотор 3" MinWidth="30" Binding="{Binding M3, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="K1 M1" MinWidth="30" Binding="{Binding K1_M1, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="K2 M1" MinWidth="30" Binding="{Binding K2_M1, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="K1 M2" MinWidth="30" Binding="{Binding K1_M2, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="K2 M2" MinWidth="30" Binding="{Binding K2_M2, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="K1 M3" MinWidth="30" Binding="{Binding K1_M3, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="K2 M3" MinWidth="30" Binding="{Binding K2_M3, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_1_Work" MinWidth="30" Binding="{Binding Q_1_Work, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_1_Clear" MinWidth="30" Binding="{Binding Q_1_Clear, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_2_Work" MinWidth="30" Binding="{Binding Q_2_Work, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_2_Clear" MinWidth="30" Binding="{Binding Q_2_Clear, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_3_Work" MinWidth="30" Binding="{Binding Q_3_Work, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_3_Clear" MinWidth="30" Binding="{Binding Q_3_Clear, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_1_C" MinWidth="30" Binding="{Binding Q_1_C, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_2_C" MinWidth="30" Binding="{Binding Q_2_C, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Q_3_C" MinWidth="30" Binding="{Binding Q_3_C, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Motor_Case_R_Open" MinWidth="30" Binding="{Binding Motor_Case_R_Open, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Motor_Case_R_Close" MinWidth="30" Binding="{Binding Motor_Case_R_Close, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Motor_Case_L_Open" MinWidth="30" Binding="{Binding Motor_Case_L_Open, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Motor_Case_L_Close" MinWidth="30" Binding="{Binding Motor_Case_L_Close, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Тормоз L1" MinWidth="30" Binding="{Binding Brake_L1, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Тормоз L2" MinWidth="30" Binding="{Binding Brake_L2, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Тормоз R1" MinWidth="30" Binding="{Binding Brake_R1, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Тормоз R2" MinWidth="30" Binding="{Binding Brake_R2, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Ger_On" MinWidth="30" Binding="{Binding Ger_On, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Ger_Off" MinWidth="30" Binding="{Binding Ger_Off, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Dif_12" MinWidth="30" Binding="{Binding Block_Dif_12, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Dif_24" MinWidth="30" Binding="{Binding Block_Dif_24, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="A3" MinWidth="30" Binding="{Binding A3, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="A5" MinWidth="30" Binding="{Binding A5, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridTextColumn Header="Мотор" MinWidth="30" Binding="{Binding MotorSpeed, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>
