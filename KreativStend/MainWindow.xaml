@@ -7,7 +7,7 @@
         xmlns:pg="clr-namespace:KreativStend.Pages"
         xmlns:local="clr-namespace:KreativStend"
         mc:Ignorable="d"
-        Title="Обкатка мостов" 
+        Title="Обкатка Мостов" 
         WindowState="Maximized"
         Height="450" Width="800"
         Background="#B3B3B3">
@@ -20,9 +20,14 @@
                 <Style TargetType="Border">
                     <Setter Property="Background" Value="#3399FF"/>
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding Path=IsConnected, Source={x:Static local:App.ProcessKeys}}" Value="False">
+                        <DataTrigger Binding="{Binding Path=ErrorState, Source={x:Static local:App.ProcessKeys}}" Value="2">
                             <DataTrigger.Setters>
                                 <Setter Property="Background" Value="Orange"/>
+                            </DataTrigger.Setters>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Path=ErrorState, Source={x:Static local:App.ProcessKeys}}" Value="3">
+                            <DataTrigger.Setters>
+                                <Setter Property="Background" Value="Red"/>
                             </DataTrigger.Setters>
                         </DataTrigger>
                     </Style.Triggers>
@@ -36,6 +41,7 @@
 
                 <!-- Треугольник-кнопка с изображением -->
                 <Button x:Name="TriangleButton" 
+                     Click="On_OpenErrorWindow"
                      Background="Transparent"
                      BorderThickness="0"
                      Width="48" 
@@ -76,7 +82,9 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Grid>
-                                --><!-- Треугольник с биндингом на цвет --><!--
+                                -->
+                <!-- Треугольник с биндингом на цвет -->
+                <!--
                                 <Path Data="M1,0 L2,2 L0,2 Z" 
                                 Stretch="Fill"
                                 Fill="{Binding TriangleColor, FallbackValue=Orange}">           
@@ -94,13 +102,15 @@
                                     </Path.Style>
                                 </Path>
 
-                                --><!-- Картинка поверх треугольника --><!--
+                                -->
+                <!-- Картинка поверх треугольника -->
+                <!--
                                 <Image Source="/Resources/warning.png" Height="40"  Width="40"/>
                             </Grid>
                         </ControlTemplate>
                     </Button.Template>
                 </Button>-->
-                
+
                 <TextBlock Foreground="White" Text="{Binding Title}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 <Button Grid.Column="1" Content="Конструктор" Style="{StaticResource normal}" Click="On_OpenLogicConstructor"/>
             </Grid>

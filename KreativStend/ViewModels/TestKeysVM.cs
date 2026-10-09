@@ -120,7 +120,11 @@ namespace KreativStend.ViewModels
         public bool StopMotor { get => Get<bool>(); set => Set(value); }
 
         public bool ERROR { get => Get<bool>(); set => Set(value); }
+
+        public int ErrorState { get => Get<int>(); set { Set(value); } }
         public bool Warning { get => Get<bool>(); set => Set(value); }
+
+        public ErrorManager ErrorManager { get; } = new ErrorManager();
 
         private WPFHelper.Commands.ViewModelCommandHandler _OpenConnection = new();
         private WPFHelper.Commands.ViewModelCommandHandler _CloseConnection = new();
@@ -130,6 +134,8 @@ namespace KreativStend.ViewModels
 
         private async void On_Tick(object? state)
         {
+
+            await CheckErrors();
             Warning = true;
             if (Warning)
             {
@@ -685,7 +691,10 @@ namespace KreativStend.ViewModels
         {
             if(true) //ЕСЛИ НЕ ВЫКЛЮЧЕН
             {
-                if(DD1_1 > 2400 || DD1_1 < -100)
+                ErrorManager.RaiseError(401);
+                ErrorManager.RaiseError(601);
+
+                if (DD1_1 > 2400 || DD1_1 < -100)
                 {
                     //Error LVL 1 или 2 -> 1
                 }
@@ -752,6 +761,8 @@ namespace KreativStend.ViewModels
                 //Error LVL 1 или 2 -> 1 
             }
         }
+
+
 
         public async Task SetMarkirator(string line1, string line2)
         {

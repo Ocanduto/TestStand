@@ -41,6 +41,18 @@ namespace KreativStend
             wnd.ShowDialog();
         }
 
+        private void On_OpenErrorWindow(object sender, RoutedEventArgs e)
+        {
+            var wnd = new ErrorWindow
+            {
+                Owner = App.Current.MainWindow,
+                DataContext = App.ProcessKeys
+            };
+
+            wnd.ShowDialog();
+        }
+
+
         private void On_VirtualKeyBoard(object sender, RoutedEventArgs e)
         {
             var wnd = new TestKeys();
