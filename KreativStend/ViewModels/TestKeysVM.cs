@@ -2,6 +2,7 @@
 using NModbus.Serial;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query.ExpressionTranslators.Internal;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
@@ -47,6 +48,7 @@ namespace KreativStend.ViewModels
 
         public bool UM1 { get => Get<bool>(); set => Set(value); }
         public bool UM2 { get => Get<bool>(); set => Set(value); }
+        public bool UM3 { get => Get<bool>(); set => Set(value); }
         public bool L1 { get => Get<bool>(); set => Set(value); }
         public bool R1 { get => Get<bool>(); set => Set(value); }
         public bool L2 { get => Get<bool>(); set => Set(value); }
@@ -72,6 +74,8 @@ namespace KreativStend.ViewModels
         public double DD2_2 { get => Get<double>(); set => Set(value); }
         public double DD_Ger { get => Get<double>(); set => Set(value); }
         public double TM1 { get => Get<double>(); set => Set(value); }
+
+        public double TM2 { get => Get<double>(); set => Set(value); }
         public ushort[] Counters { get => Get<ushort[]>(); set => Set(value); }
         //public string Torque { get => Get<string>(); set => Set(value); }
         //public string Speed { get => Get<string>(); set => Set(value); }
@@ -87,6 +91,17 @@ namespace KreativStend.ViewModels
         public bool K1_M3 { get => Get<bool>(); set => Set(value); }
         public bool K2_M3 { get => Get<bool>(); set => Set(value); }
         public bool Q_1_Work { get => Get<bool>(); set => Set(value); }
+        public double V_X_1 { get => Get<double>(); set => Set(value); }
+        public double V_Y_1 { get => Get<double>(); set => Set(value); }
+        public double V_Z_1 { get => Get<double>(); set => Set(value); }
+        public double V_M_1 { get => Get<double>(); set => Set(value); }
+        public double V_T_1 { get => Get<double>(); set => Set(value); }
+
+        public double V_X_2 { get => Get<double>(); set => Set(value); }
+        public double V_Y_2 { get => Get<double>(); set => Set(value); }
+        public double V_Z_2 { get => Get<double>(); set => Set(value); }
+        public double V_M_2 { get => Get<double>(); set => Set(value); }
+        public double V_T_2 { get => Get<double>(); set => Set(value); }
         public bool Q_2_Work { get => Get<bool>(); set => Set(value); }
 		public bool Q_3_Work { get => Get<bool>(); set => Set(value); }
 		public bool Q_1_Clear { get => Get<bool>(); set => Set(value); }
@@ -126,11 +141,43 @@ namespace KreativStend.ViewModels
 
         public ErrorManager ErrorManager { get; } = new ErrorManager();
 
+        public bool IsTestRunning { get; set; }
+
+        private const int FilterCheckDelayMs = 5000;
+
+        private DateTime? _dd1FlowStarted;
+        private DateTime? _dd2FlowStarted;
+
+        private const int FlowmeterMinPulsesPerSecond = 100;
+        // Временные лимиты вибродатчиков — позже перенести в конфигуратор
+        private const double VibrationAxisMin = -999.0;
+        private const double VibrationAxisMax = 999.0;
+
+        private const double VibrationModuleMin = 0.0;
+        private const double VibrationModuleMax = 999.0;
+
+        private const double VibrationTemperatureMin = -50.0;
+        private const double VibrationTemperatureMax = 200.0;
+
+        private sealed class FlowmeterCheckState
+        {
+            public bool WasActive;
+            public bool HasBaseline;
+            public readonly Stopwatch Stopwatch = new();
+            public long LastSampleMs;
+            public ushort LastCounter;
+        }
+
+        private readonly FlowmeterCheckState _flowmeter1 = new();
+        private readonly FlowmeterCheckState _flowmeter2 = new();
+
         private WPFHelper.Commands.ViewModelCommandHandler _OpenConnection = new();
         private WPFHelper.Commands.ViewModelCommandHandler _CloseConnection = new();
 
         public ICommand OpenConnection => _OpenConnection.Get(On_OpenConnection, () => !string.IsNullOrWhiteSpace(COMPORT) && !IsConnected);
         public ICommand CloseConnection => _CloseConnection.Get(On_CloseConnection, () => IsConnected);
+
+
 
         private async void On_Tick(object? state)
         {
@@ -453,6 +500,27 @@ namespace KreativStend.ViewModels
                 var data_float = await master.ReadHoldingRegistersAsync(1, 4, 12);
                 Counters = await master.ReadHoldingRegistersAsync(1, 16, 2);
 
+                if (Counters != null && Counters.Length >= 2)
+                {
+                    // Расходомер №1: насос M1 и клапаны K1_M1, K2_M1.
+                    CheckFlowmeter(
+                        _flowmeter1,
+                        M1,
+                        K1_M1,
+                        K2_M1,
+                        Counters[0],
+                        701);
+
+                    // Расходомер №2: насос M3 и клапаны K1_M3, K2_M3.
+                    CheckFlowmeter(
+                        _flowmeter2,
+                        M3,
+                        K1_M3,
+                        K2_M3,
+                        Counters[1],
+                        702);
+                }
+
                 float[] Floats_From_PLC = new float[6];
 
                 for (int i = 0; i < data_float.Length / 2; i++)
@@ -492,6 +560,7 @@ namespace KreativStend.ViewModels
             {
                 if (tcpClient != null && tcpClient.Connected)
                 {
+                    ErrorManager.ClearError(201);
                     IsConnected = true;
                 }
                 else
@@ -510,8 +579,9 @@ namespace KreativStend.ViewModels
             }
             catch (Exception e)
             {
-                MessageBox.Show($"не удалось подключиться {Properties.Settings.Default.IP_Address}");
-                MessageBox.Show(e.ToString());
+                ErrorManager.RaiseError(201);
+                //MessageBox.Show($"не удалось подключиться {Properties.Settings.Default.IP_Address}");
+                //MessageBox.Show(e.ToString());
 
                 //if (port != null)
                 //{
@@ -523,46 +593,47 @@ namespace KreativStend.ViewModels
                 modbusFactory = null;
             }
 
-            //try
-            //{
-            //    if (port != null && port.IsOpen)
-            //    {
-            //        IsConnected = true;
-            //    }
-            //    else
-            //    {
-            //        port = new SerialPort
-            //        {
-            //            PortName = Properties.Settings.Default.COMPORT,
-            //            BaudRate = 9600,
-            //            Parity = Parity.None,
-            //            DataBits = 8,
-            //            StopBits = StopBits.One,
-            //            ReadTimeout = 1000,
-            //            WriteTimeout = 1000,
-            //            Encoding = Encoding.ASCII
-            //        };
-            //        port.Open();
-            //    }
-            //}
-            //catch (Exception e)
-            //{
-            //    MessageBox.Show($"не удалось подключиться к {Properties.Settings.Default.COMPORT}");
-            //    MessageBox.Show(e.ToString());
+            try
+            {
+                if (port != null && port.IsOpen)
+                {
+                    ErrorManager.ClearError(203);
+                }
+                else
+                {
+                    port = new SerialPort
+                    {
+                        PortName = Properties.Settings.Default.COMPORT,
+                        BaudRate = 9600,
+                        Parity = Parity.None,
+                        DataBits = 8,
+                        StopBits = StopBits.One,
+                        ReadTimeout = 1000,
+                        WriteTimeout = 1000,
+                        Encoding = Encoding.ASCII
+                    };
+                    port.Open();
+                }
+            }
+            catch (Exception e)
+            {
+                ErrorManager.RaiseError(203);
+                //MessageBox.Show($"не удалось подключиться к {Properties.Settings.Default.COMPORT}");
+                //MessageBox.Show(e.ToString());
 
-            //    if (port != null)
-            //    {
-            //        port.Close();
-            //        port.Dispose();
-            //    }
-            //    port = null;
-            //}
+                if (port != null)
+                {
+                    port.Close();
+                    port.Dispose();
+                }
+                port = null;
+            }
 
             try
             {
                 if (port2 != null && port2.IsOpen)
                 {
-                    IsConnected = true;
+                    ErrorManager.ClearError(202);
                 }
                 else
                 {
@@ -587,9 +658,9 @@ namespace KreativStend.ViewModels
             }
             catch (Exception e)
             {
-                MessageBox.Show($"не удалось подключиться к {Properties.Settings.Default.COMPORT2}");
-                MessageBox.Show(e.ToString());
-
+                //MessageBox.Show($"не удалось подключиться к {Properties.Settings.Default.COMPORT2}");
+                //MessageBox.Show(e.ToString());
+                ErrorManager.RaiseError(202);
                 if (port2 != null)
                 {
                     port2.Close();
@@ -687,80 +758,218 @@ namespace KreativStend.ViewModels
 
         }
 
+
         public async Task CheckErrors()
         {
-            if(true) //ЕСЛИ НЕ ВЫКЛЮЧЕН
-            {
-                ErrorManager.RaiseError(401);
-                ErrorManager.RaiseError(601);
 
-                if (DD1_1 > 2400 || DD1_1 < -100)
-                {
-                    //Error LVL 1 или 2 -> 1
-                }
-            }
-            if (true) //ЕСЛИ НЕ ВЫКЛЮЧЕН
-            {
-                if (DD1_2 > 2400 || DD1_2 < -100)
-                {
-                    //Error LVL 1 или 2 -> 1
-                }
-            }
-            if (true) //ЕСЛИ НЕ ВЫКЛЮЧЕН
-            {
-                if (DD2_1 > 2400 || DD2_1 < -100)
-                {
-                    //Error LVL 1 или 2 -> 1
-                }
-            }
-            if (true) //ЕСЛИ НЕ ВЫКЛЮЧЕН
-            {
-                if (DD2_2 > 2400 || DD2_2 < -100)
-                {
-                    //Error LVL 1 или 2 -> 1
-                }
-            }
-            if (true) //ЕСЛИ НЕ ВЫКЛЮЧЕН
+            // Ошибка 101 — датчик DD1_1 вне допустимого диапазона
+            if (DD1_1 > 2400 || DD1_1 < -100)
+                ErrorManager.RaiseError(101);
+
+            // Ошибка 102 — датчик DD1_2 вне допустимого диапазона
+            if (DD1_2 > 2400 || DD1_2 < -100)
+                ErrorManager.RaiseError(102);
+
+            // Ошибка 103 — датчик DD2_1 вне допустимого диапазона
+            if (DD2_1 > 2400 || DD2_1 < -100)
+                ErrorManager.RaiseError(103);
+
+            // Ошибка 104 — датчик DD2_2 вне допустимого диапазона
+            if (DD2_2 > 2400 || DD2_2 < -100)
+                ErrorManager.RaiseError(104);
+
+            // Ошибка 105 — датчик DD_Ger вне допустимого диапазона
+            if (!IsTestRunning)
             {
                 if (DD_Ger > 6000 || DD_Ger < -10)
+                    ErrorManager.RaiseError(105);
+            }
+
+            // Ошибка 106 — датчик температуры TM1 вне технического диапазона
+            if (TM1 > 180 || TM1 < -60)
+                ErrorManager.RaiseError(106);
+
+            // Ошибка 107 — датчик температуры TM2 вне технического диапазона
+            if (TM2 > 180 || TM2 < -60)
+                ErrorManager.RaiseError(107);
+
+            // Ошибка 501 — температура масла в баке №1 вне рабочего диапазона 70–80
+            if (TM1 < 70 || TM1 > 80)
+                ErrorManager.RaiseError(501);
+
+            // Ошибка 502 — температура масла в баке №2 вне рабочего диапазона 70–80
+            if (TM2 < 70 || TM2 > 80)
+                ErrorManager.RaiseError(502);
+
+            // Ошибка 601 — фильтр DD1_1 — DD1_2
+            bool dd1FlowActive = IsTestRunning
+                                 && M1
+                                 && K1_M1
+                                 && K2_M1;
+
+            if (dd1FlowActive)
+            {
+                _dd1FlowStarted ??= DateTime.UtcNow;
+
+                if ((DateTime.UtcNow - _dd1FlowStarted.Value).TotalMilliseconds
+                    >= FilterCheckDelayMs)
                 {
-                    //Error LVL 1
+                    if (DD1_2 - DD1_1 > 0)
+                        ErrorManager.RaiseError(601);
                 }
             }
-            if (true) //ЕСЛИ НЕ ВЫКЛЮЧЕН(?)
+            else
             {
-                if (TM1 > 180 || TM1 < -60)
-                {
-                    //Error LVL 1 или 2->1(?) датчик
-                }
-                if (TM1 < 70)
-                {
-                    //Error LVL 1 температура масла
-                }
+                _dd1FlowStarted = null;
             }
-            if (true) //ВЫЛЕЗАЕТ ВСЕГДА. ФИЛЬТРЫ ЗАКАЧКИ
+
+            // Ошибка 602 — фильтр DD2_1 — DD2_2
+            bool dd2FlowActive = IsTestRunning
+                                 && M2
+                                 && K1_M2
+                                 && K2_M2;
+
+            if (dd2FlowActive)
             {
-                if (DD1_2 - DD1_1 > 0)
+                _dd2FlowStarted ??= DateTime.UtcNow;
+
+                if ((DateTime.UtcNow - _dd2FlowStarted.Value).TotalMilliseconds
+                    >= FilterCheckDelayMs)
                 {
-                    //Error LVL 3
-                }
-            }
-            if (true) //ВЫЛЕЗАЕТ ВСЕГДА. ФИЛЬТРЫ ОТКАЧКИ
-            {
-                if (DD2_2 - DD2_1 > 0)
-                {
-                    //Error LVL 3
+                    if (DD2_2 - DD2_1 > 0)
+                        ErrorManager.RaiseError(602);
                 }
             }
-            if (true) //ВЫЛЕЗАЕТ ВСЕГДА. УРОВНИ МАСЛА
+            else
             {
-                //ЖДЕМ
+                _dd2FlowStarted = null;
             }
-            if (!IsConnected)
+
+            // Ошибка 401 — низкий уровень масла в баке №1 (сигнал UM2)
+            if (UM2)
+                ErrorManager.RaiseError(401);
+
+            // Ошибка 402 — низкий уровень масла в баке №2 (сигнал UM3)
+            if (UM3)
+                ErrorManager.RaiseError(402);
+
+            // Ошибка 301 — некорректные данные вибродатчика №1
+            if (IsTestRunning)
             {
-                //Error LVL 1 или 2 -> 1 
+                bool vibration1AllZero =
+                    V_X_1 == 0 &&
+                    V_Y_1 == 0 &&
+                    V_Z_1 == 0 &&
+                    V_M_1 == 0 &&
+                    V_T_1 == 0;
+
+                bool vibration1OutOfLimits =
+                    !double.IsFinite(V_X_1) ||
+                    !double.IsFinite(V_Y_1) ||
+                    !double.IsFinite(V_Z_1) ||
+                    !double.IsFinite(V_M_1) ||
+                    !double.IsFinite(V_T_1) ||
+                    V_X_1 < VibrationAxisMin || V_X_1 > VibrationAxisMax ||
+                    V_Y_1 < VibrationAxisMin || V_Y_1 > VibrationAxisMax ||
+                    V_Z_1 < VibrationAxisMin || V_Z_1 > VibrationAxisMax ||
+                    V_M_1 < VibrationModuleMin || V_M_1 > VibrationModuleMax ||
+                    V_T_1 < VibrationTemperatureMin ||
+                    V_T_1 > VibrationTemperatureMax;
+
+                if (vibration1AllZero || vibration1OutOfLimits)
+                    ErrorManager.RaiseError(301);
+
+                // Ошибка 302 — некорректные данные вибродатчика №2
+                bool vibration2AllZero =
+                    V_X_2 == 0 &&
+                    V_Y_2 == 0 &&
+                    V_Z_2 == 0 &&
+                    V_M_2 == 0 &&
+                    V_T_2 == 0;
+
+                bool vibration2OutOfLimits =
+                    !double.IsFinite(V_X_2) ||
+                    !double.IsFinite(V_Y_2) ||
+                    !double.IsFinite(V_Z_2) ||
+                    !double.IsFinite(V_M_2) ||
+                    !double.IsFinite(V_T_2) ||
+                    V_X_2 < VibrationAxisMin || V_X_2 > VibrationAxisMax ||
+                    V_Y_2 < VibrationAxisMin || V_Y_2 > VibrationAxisMax ||
+                    V_Z_2 < VibrationAxisMin || V_Z_2 > VibrationAxisMax ||
+                    V_M_2 < VibrationModuleMin || V_M_2 > VibrationModuleMax ||
+                    V_T_2 < VibrationTemperatureMin ||
+                    V_T_2 > VibrationTemperatureMax;
+
+                if (vibration2AllZero || vibration2OutOfLimits)
+                    ErrorManager.RaiseError(302);
             }
         }
+
+        private void CheckFlowmeter(
+            FlowmeterCheckState state,
+            bool pumpOn,
+            bool valve1On,
+            bool valve2On,
+            ushort counter,
+            int errorCode)
+        {
+            // Проверяем только во время обкатки,
+            // когда насос и оба клапана включены.
+            bool active = IsTestRunning
+                          && pumpOn
+                          && valve1On
+                          && valve2On;
+
+            if (!active)
+            {
+                state.Stopwatch.Reset();
+                state.WasActive = false;
+                state.HasBaseline = false;
+
+                // Ошибку здесь не сбрасываем.
+                return;
+            }
+
+            // Новый запуск: начинаем отсчёт заново.
+            if (!state.WasActive)
+            {
+                state.WasActive = true;
+                state.HasBaseline = false;
+                state.Stopwatch.Restart();
+                return;
+            }
+
+            long elapsedMs = state.Stopwatch.ElapsedMilliseconds;
+
+            // Даём расходомеру 2 секунды на запуск.
+            if (elapsedMs < 2000)
+                return;
+
+            // Первый замер после стартовой задержки —
+            // сохраняем значение, но ещё не проверяем прирост.
+            if (!state.HasBaseline)
+            {
+                state.LastCounter = counter;
+                state.LastSampleMs = elapsedMs;
+                state.HasBaseline = true;
+                return;
+            }
+
+            // Сравниваем показания примерно раз в секунду.
+            if (elapsedMs - state.LastSampleMs < 1000)
+                return;
+
+            int delta = counter - state.LastCounter;
+
+            state.LastCounter = counter;
+            state.LastSampleMs = elapsedMs;
+
+            if (delta < FlowmeterMinPulsesPerSecond)
+                ErrorManager.RaiseError(errorCode);
+
+            // Если расход нормальный, ошибку не сбрасываем.
+        }
+
 
 
 

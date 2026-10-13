@@ -30,7 +30,9 @@ namespace KreativStend.ViewModels
 			LogicItems = [];
 
 			Variables = new double[10];
-		}
+
+            App.ProcessKeys.IsTestRunning = true;
+        }
 
 		private Timer _timer;
 		private int testId;
@@ -94,11 +96,15 @@ namespace KreativStend.ViewModels
 
 		private void On_Exit_Command()
 		{
-			StepIndex = -1;
+            App.ProcessKeys.IsTestRunning = false;
+
+            StepIndex = -1;
 			App.NavigateHide();
 		}
 		private async void On_Cancel_Command()
 		{
+
+
 			if (testId > 0 && StepIndex > 0)
 			{
 				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
@@ -111,8 +117,10 @@ namespace KreativStend.ViewModels
 					Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty
 				});
 			}
-			
-			StepIndex = 0;
+
+            App.ProcessKeys.IsTestRunning = false;
+
+            StepIndex = 0;
 			ZeroParams();
 			App.Navigate<NewTestPage>(q => q.DataContext = this);
 		}

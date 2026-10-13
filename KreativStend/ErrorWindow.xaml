@@ -88,7 +88,7 @@
                     Padding="10,8"
                     Margin="0,5,0,4">
                 <TextBlock Text="{Binding Name, Mode=OneWay,
-                                  StringFormat='Тир {0}'}"
+                                  StringFormat='Уровень {0}'}"
                            Foreground="#0873D1"
                            FontWeight="Bold"
                            FontSize="14"/>
@@ -186,8 +186,8 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="72"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="64"/>
-                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="140"/>
                         <ColumnDefinition Width="120"/>
                     </Grid.ColumnDefinitions>
 
@@ -389,7 +389,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="72"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="64"/>
+                                    <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="150"/>
                                     <ColumnDefinition Width="120"/>
                                 </Grid.ColumnDefinitions>
@@ -407,7 +407,7 @@
                                            Margin="8,12"/>
 
                                 <TextBlock Grid.Column="2"
-                                           Text="Тир"
+                                           Text="Уровень"
                                            Style="{StaticResource CellText}"
                                            FontWeight="Bold"
                                            HorizontalAlignment="Center"
