@@ -1,68 +1,463 @@
 ﻿<Window x:Class="KreativStend.ErrorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:KreativStend"
-        xmlns:vm="clr-namespace:KreativStend.ViewModels"
-        mc:Ignorable="d"
-        Title="Окно ошибок" 
-        Height="700" Width="1400"
-        WindowStartupLocation="CenterOwner"
-        DataContext="{Binding Source={x:Static local:App.ProcessKeys}}">
+        xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+        Title="Окно ошибок"
+        Width="1450"
+        Height="900"
+        MinWidth="1050"
+        MinHeight="650"
+        WindowStartupLocation="CenterScreen"
+        Background="#F1F6FC"
+        FontFamily="Segoe UI"
+        FontSize="13">
 
-    <DockPanel LastChildFill="True">
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+    <Window.Resources>
+        <SolidColorBrush x:Key="TextBrush" Color="#172B45"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#718198"/>
+        <SolidColorBrush x:Key="LineBrush" Color="#D7E4F2"/>
+        <SolidColorBrush x:Key="RedBrush" Color="#F33338"/>
+        <SolidColorBrush x:Key="YellowBrush" Color="#FFB020"/>
+        <SolidColorBrush x:Key="BlueBrush" Color="#1683E8"/>
 
-            <!-- Список -->
-            <ListBox ItemsSource="{Binding ActiveErrors}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Code}"
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <Style x:Key="CellText" TargetType="{x:Type TextBlock}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="8,0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="IgnoreCheckBox" TargetType="{x:Type CheckBox}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0"/>
+        </Style>
+
+        <Style x:Key="CatalogListBoxItem" TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Border Background="{TemplateBinding Background}"
+                                HorizontalAlignment="Stretch">
+                            <ContentPresenter HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Сортировка и группировка полного каталога -->
+        <CollectionViewSource x:Key="AllErrorsView"
+                              Source="{Binding ErrorManager.Errors}">
+            <CollectionViewSource.SortDescriptions>
+                <scm:SortDescription PropertyName="Tier"/>
+                <scm:SortDescription PropertyName="Code"/>
+            </CollectionViewSource.SortDescriptions>
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Tier"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+
+        <!-- Представление активных ошибок -->
+        <CollectionViewSource x:Key="ActiveErrorsView"
+                              Source="{Binding ErrorManager.Errors}">
+            <CollectionViewSource.SortDescriptions>
+                <scm:SortDescription PropertyName="Tier"/>
+                <scm:SortDescription PropertyName="Code"/>
+            </CollectionViewSource.SortDescriptions>
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Tier"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+
+        <!-- Заголовок группы -->
+        <DataTemplate x:Key="TierHeaderTemplate">
+            <Border Background="#E5F2FF"
+                    CornerRadius="6"
+                    Padding="10,8"
+                    Margin="0,5,0,4">
+                <TextBlock Text="{Binding Name, Mode=OneWay,
+                                  StringFormat='Уровень {0}'}"
+                           Foreground="#0873D1"
                            FontWeight="Bold"
-                           Width="60"/>
-                            <TextBlock Text="{Binding Message}"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                           FontSize="14"/>
+            </Border>
+        </DataTemplate>
 
-            <!-- Чекбоксы -->
-            <StackPanel Grid.Column="1"
-                Margin="10"
-                VerticalAlignment="Top">
+        <!-- Карточка активной ошибки -->
+        <DataTemplate x:Key="ActiveErrorTemplate">
+            <Border Margin="0,3,0,4"
+                    Padding="10"
+                    CornerRadius="7"
+                    BorderThickness="1">
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="Background" Value="#FFF0F0"/>
+                        <Setter Property="BorderBrush" Value="#F5CACA"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Ignore}" Value="True">
+                                <Setter Property="Background" Value="#FFF6DF"/>
+                                <Setter Property="BorderBrush" Value="#F3D28A"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
 
-                <CheckBox Content="IsConnected"
-                  IsChecked="{Binding IsConnected}"
-                  IsHitTestVisible="False"
-                  Focusable="False"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <CheckBox Content="IsConnected_1"
-                  IsChecked="{Binding IsConnected_1}"
-                  IsHitTestVisible="False"
-                  Focusable="False"/>
+                    <TextBlock Grid.Column="0"
+                               Text="!"
+                               FontSize="21"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource RedBrush}"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
 
-                <CheckBox Content="IsConnected_2"
-                  IsChecked="{Binding IsConnected_2}"
-                  IsHitTestVisible="False"
-                  Focusable="False"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextBrush}"
+                                   TextWrapping="Wrap">
+                            <Run Text="Код "/>
+                            <Run Text="{Binding Code}"/>
+                            <Run Text="  |  "/>
+                            <Run Text="{Binding Message}"/>
+                        </TextBlock>
 
-                <CheckBox Content="IsConnected_3"
-                  IsChecked="{Binding IsConnected_3}"
-                  IsHitTestVisible="False"
-                  Focusable="False"/>
+                        <TextBlock Margin="0,4,0,0"
+                                   TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Text" Value="Активна"/>
+                                    <Setter Property="Foreground" Value="#D52227"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Ignore}" Value="True">
+                                            <Setter Property="Text" Value="Игнорируется оператором"/>
+                                            <Setter Property="Foreground" Value="#A66B00"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
 
-                <CheckBox Content="IsConnected_4"
-                  IsChecked="{Binding IsConnected_4}"
-                  IsHitTestVisible="False"
-                  Focusable="False"/>
+        <!-- Строка каталога: одинаковые колонки у каждой записи -->
+        <DataTemplate x:Key="AllErrorTemplate">
+            <Border BorderBrush="#E5EDF5"
+                    BorderThickness="0,0,0,1"
+                    Padding="0,2"
+                    HorizontalAlignment="Stretch">
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="Background" Value="White"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                <Setter Property="Background" Value="#FFF0F0"/>
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsActive}" Value="True"/>
+                                    <Condition Binding="{Binding Ignore}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Background" Value="#FFF6DF"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
 
-            </StackPanel>
-        </Grid>
-    </DockPanel>
+                <Grid HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="140"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Code}"
+                               Style="{StaticResource CellText}"/>
+
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Message}"
+                               Style="{StaticResource CellText}"
+                               TextWrapping="Wrap"
+                               Margin="8,8"/>
+
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Tier}"
+                               Style="{StaticResource CellText}"
+                               HorizontalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="3"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="8,8">
+                        <Ellipse Width="9"
+                                 Height="9"
+                                 Margin="0,0,8,0"
+                                 VerticalAlignment="Center">
+                            <Ellipse.Style>
+                                <Style TargetType="{x:Type Ellipse}">
+                                    <Setter Property="Fill" Value="#AAB6C4"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                            <Setter Property="Fill" Value="#F33338"/>
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsActive}" Value="True"/>
+                                                <Condition Binding="{Binding Ignore}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Fill" Value="#FFB020"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+
+                        <TextBlock VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Text" Value="Неактивна"/>
+                                    <Setter Property="Foreground" Value="#718198"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                            <Setter Property="Text" Value="Активна"/>
+                                            <Setter Property="Foreground" Value="#D52227"/>
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsActive}" Value="True"/>
+                                                <Condition Binding="{Binding Ignore}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Text" Value="Игнорируется"/>
+                                            <Setter Property="Foreground" Value="#A66B00"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <CheckBox Grid.Column="4"
+                              Style="{StaticResource IgnoreCheckBox}"
+                              IsChecked="{Binding Ignore, Mode=TwoWay,
+                                  UpdateSourceTrigger=PropertyChanged}"
+                              ToolTip="Игнорировать эту ошибку"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="390"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Левая панель: только активные ошибки -->
+        <Border Grid.Column="0"
+                Background="White"
+                BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="1"
+                CornerRadius="9"
+                Padding="12">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="4,4,4,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Активные ошибки"
+                               FontSize="21"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+
+                    <Button Grid.Column="1"
+                            Content="Сбросить ошибки"
+                            Padding="12,9"
+                            Background="{StaticResource BlueBrush}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Click="ResetErrors_Click"
+                            VerticalAlignment="Center"/>
+                </Grid>
+
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding Source={StaticResource ActiveErrorsView}}"
+                         ItemTemplate="{StaticResource ActiveErrorTemplate}"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListBoxItem}"
+                               BasedOn="{StaticResource CatalogListBoxItem}">
+                            <Setter Property="Visibility"
+                                    Value="{Binding IsActive,
+                                        Converter={StaticResource BoolToVisibility}}"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+
+                    <ListBox.GroupStyle>
+                        <GroupStyle HeaderTemplate="{StaticResource TierHeaderTemplate}"/>
+                    </ListBox.GroupStyle>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <GridSplitter Grid.Column="1"
+                      Width="5"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Stretch"
+                      Background="#D7E4F2"
+                      ShowsPreview="True"/>
+
+        <!-- Правая панель: полный каталог ошибок -->
+        <Border Grid.Column="2"
+                Background="White"
+                BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="1"
+                CornerRadius="9"
+                Padding="12">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="5,4,5,12">
+                    <TextBlock Text="Все ошибки"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextBrush}"/>
+
+                    <TextBlock Text="Полный каталог. Состояние и игнорирование отображаются отдельно."
+                               Foreground="{StaticResource MutedBrush}"
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"/>
+                          
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                    Content="Настройка"
+                    Width="120"
+                    Height="38"
+                    Margin="10,0,0,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource BlueBrush}"
+                    Foreground="White"
+                    Click="SettingsButton_Click"/>      
+
+                <Border Grid.Row="1"
+                        BorderBrush="{StaticResource LineBrush}"
+                        BorderThickness="1"
+                        CornerRadius="7"
+                        ClipToBounds="True">
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Заголовки колонок повторяют сетку строк -->
+                        <Border Grid.Row="0"
+                                Background="#F3F7FC"
+                                BorderBrush="{StaticResource LineBrush}"
+                                BorderThickness="0,0,0,1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="72"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="120"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                           Text="Код"
+                                           Style="{StaticResource CellText}"
+                                           FontWeight="Bold"
+                                           Margin="8,12"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="Наименование"
+                                           Style="{StaticResource CellText}"
+                                           FontWeight="Bold"
+                                           Margin="8,12"/>
+
+                                <TextBlock Grid.Column="2"
+                                           Text="Уровень"
+                                           Style="{StaticResource CellText}"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           Margin="8,12"/>
+
+                                <TextBlock Grid.Column="3"
+                                           Text="Состояние"
+                                           Style="{StaticResource CellText}"
+                                           FontWeight="Bold"
+                                           Margin="8,12"/>
+
+                                <TextBlock Grid.Column="4"
+                                           Text="Игнорировать"
+                                           Style="{StaticResource CellText}"
+                                           FontWeight="Bold"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           Margin="8,8"/>
+                            </Grid>
+                        </Border>
+
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding Source={StaticResource AllErrorsView}}"
+                                 ItemTemplate="{StaticResource AllErrorTemplate}"
+                                 ItemContainerStyle="{StaticResource CatalogListBoxItem}"
+                                 BorderThickness="0"
+                                 Background="White"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                            <ListBox.GroupStyle>
+                                <GroupStyle HeaderTemplate="{StaticResource TierHeaderTemplate}"/>
+                            </ListBox.GroupStyle>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

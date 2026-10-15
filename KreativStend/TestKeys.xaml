@@ -4,101 +4,299 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KreativStend"
-        xmlns:vm="clr-namespace:KreativStend.ViewModels"
         mc:Ignorable="d"
-        Title="Сервисное тестирование" 
-        Height="615" Width="1200"
+        Title="Сервисное тестирование"
+        Height="900" Width="1800" MinHeight="760" MinWidth="1500"
         WindowStartupLocation="CenterOwner"
-        DataContext="{Binding Source={x:Static local:App.ProcessKeys}}">
+        Background="#E8EDF2"
+        DataContext="{Binding Source={x:Static local:App.ProcessKeys}}"
+        Closing="Window_Closing">
 
-    <DockPanel LastChildFill="True">
+    <Window.Resources>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Foreground" Value="#203247"/>
+            <Setter Property="BorderBrush" Value="#AAB8C6"/>
+            <Setter Property="Background" Value="#F8FAFC"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#203247"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="4,6"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="4,3"/>
+            <Setter Property="Padding" Value="5,3"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="MinWidth" Value="75"/>
+        </Style>
+        <Style x:Key="TallToggle" TargetType="ToggleButton" BasedOn="{StaticResource normal_toggle}">
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Height" Value="108"/>
+            <Setter Property="MinHeight" Value="108"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+        <Style x:Key="ManagementToggle" TargetType="ToggleButton" BasedOn="{StaticResource normal_toggle}">
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Width" Value="120"/>
+            <Setter Property="Height" Value="80"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+    </Window.Resources>
 
-        <UniformGrid Columns="3" DockPanel.Dock="Top">
-            <ComboBox ItemsSource="{Binding COMPORTS}" SelectedItem="{Binding COMPORT, UpdateSourceTrigger=PropertyChanged}"/>
-            <Button Content="Подключиться" Command="{Binding OpenConnection}"/>
-            <Button Content="Отключиться" Command="{Binding CloseConnection}"/>
-        </UniformGrid>
+    <Grid Margin="6">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.05*"/>
+            <ColumnDefinition Width="750"/>
+        </Grid.ColumnDefinitions>
 
-        <UniformGrid Columns="2" DockPanel.Dock="Left">
-            <CheckBox Content="Уровень масла верхний" IsChecked="{Binding UM1}"/>
-            <CheckBox Content="Уровень масла нижний" IsChecked="{Binding UM2}"/>
-            <CheckBox Content="Левый барабан в верхнем положении" IsChecked="{Binding L1}"/>
-            <CheckBox Content="Правый барабан в верхнем положении" IsChecked="{Binding R1}"/>
-            <CheckBox Content="Левый барабан в нижнем положении" IsChecked="{Binding L2}"/>
-            <CheckBox Content="Правый барабан в нижнем положении" IsChecked="{Binding R2}"/>
-            <CheckBox Content="Защитный кожух левого барабана открыт" IsChecked="{Binding Case_L_Open}"/>
-            <CheckBox Content="Защитный кожух левого барабана закрыт" IsChecked="{Binding Case_L_Close}"/>
-            <CheckBox Content="Защитный кожух правого барабана открыт" IsChecked="{Binding Case_R_Open}"/>
-            <CheckBox Content="Защитный кожух правого барабана закрыт" IsChecked="{Binding Case_R_Close}"/>
-            <CheckBox Content="Левый первый тормоз включен" IsChecked="{Binding Brake_L1_On}"/>
-            <CheckBox Content="Левый первый тормоз выключен" IsChecked="{Binding Brake_L1_Off}"/>
-            <CheckBox Content="Левый второй тормоз включен" IsChecked="{Binding Brake_L2_On}"/>
-            <CheckBox Content="Левый второй тормоз выключен" IsChecked="{Binding Brake_L2_Off}"/>
-            <CheckBox Content="Правый первый тормоз включен" IsChecked="{Binding Brake_R1_On}"/>
-            <CheckBox Content="Правый первый тормоз выключен" IsChecked="{Binding Brake_R1_Off}"/>
-            <CheckBox Content="Правый второй тормоз включен" IsChecked="{Binding Brake_R2_On}"/>
-            <CheckBox Content="Правый второй тормоз выключен" IsChecked="{Binding Brake_R2_Off}"/>
-            <TextBox Text="{Binding DD1_1}"/>
-            <TextBox Text="{Binding DD1_2}"/>
-            <TextBox Text="{Binding DD2_1}"/>
-            <TextBox Text="{Binding DD2_2}"/>
-            <TextBox Text="{Binding TM1}"/>
-            <TextBox Text="{Binding Counters[0]}"/>
-            <TextBox Text="{Binding Counters[1]}"/>
-            <TextBox Text="{Binding Torque}"/>
-            <TextBox Text="{Binding Speed}"/>
-            <!--<CheckBox Content="RD2" IsChecked="{Binding RD2}"/>
-            <CheckBox Content="RD3" IsChecked="{Binding RD3}"/>
-            <CheckBox Content="Масло уровень" IsChecked="{Binding IS_OIL_LVL}"/>-->
-            <CheckBox Content="ОШИБКА" IsChecked="{Binding ERROR}"/>
-        </UniformGrid>
+        <!-- LEFT: signal states and measurements -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <Border Padding="5" Width="610">
-            <UniformGrid Columns="4" Width="600">
-                <ToggleButton Content="Тены" IsChecked="{Binding Ten}" Style="{StaticResource normal_toggle}"/>
-                
-                <ToggleButton Content="Мотор 1" IsChecked="{Binding M1}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Мотор 2" IsChecked="{Binding M2}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Мотор 3" IsChecked="{Binding M3}" Style="{StaticResource normal_toggle}"/>
-                
-                <ToggleButton Content="K1_M1" IsChecked="{Binding K1_M1}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="K2_M1" IsChecked="{Binding K2_M1}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="K1_M2" IsChecked="{Binding K1_M2}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="K2_M2" IsChecked="{Binding K2_M2}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="K1_M3" IsChecked="{Binding K1_M3}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="K2_M3" IsChecked="{Binding K2_M3}" Style="{StaticResource normal_toggle}"/>
-                
-                <ToggleButton Content="Q_1_Work" IsChecked="{Binding Q_1_Work}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Q_2_Work" IsChecked="{Binding Q_2_Work}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Q_3_Work" IsChecked="{Binding Q_3_Work}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Q_1_Clear" IsChecked="{Binding Q_1_Clear}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Q_2_Clear" IsChecked="{Binding Q_2_Clear}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Q_3_Clear" IsChecked="{Binding Q_3_Clear}" Style="{StaticResource normal_toggle}"/>
-                
-                <ToggleButton Content="Brake_L1" IsChecked="{Binding Brake_L1}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Brake_L2" IsChecked="{Binding Brake_L2}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Brake_R1" IsChecked="{Binding Brake_R1}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Brake_R2" IsChecked="{Binding Brake_R2}" Style="{StaticResource normal_toggle}"/>
+            <GroupBox Header="Состояния и дискретные сигналы" Grid.Row="0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="310">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <CheckBox Content="Уровень масла — верхний" IsChecked="{Binding UM1}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Уровень масла — средний" IsChecked="{Binding UM2}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Уровень масла — нижний" IsChecked="{Binding UM3}" IsHitTestVisible="False"/>
+                            <Separator Margin="3,7"/>
+                            <CheckBox Content="Левый барабан — верхнее положение" IsChecked="{Binding L1}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Левый барабан — нижнее положение" IsChecked="{Binding L2}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Кожух левого барабана — открыт" IsChecked="{Binding Case_L_Open}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Кожух левого барабана — закрыт" IsChecked="{Binding Case_L_Close}" IsHitTestVisible="False"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <CheckBox Content="Правый барабан — верхнее положение" IsChecked="{Binding R1}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Правый барабан — нижнее положение" IsChecked="{Binding R2}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Кожух правого барабана — открыт" IsChecked="{Binding Case_R_Open}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Кожух правого барабана — закрыт" IsChecked="{Binding Case_R_Close}" IsHitTestVisible="False"/>
+                            <Separator Margin="3,7"/>
+                            <CheckBox Content="Левый тормоз 1 — выключен" IsChecked="{Binding Brake_L1_Off}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Левый тормоз 2 — выключен" IsChecked="{Binding Brake_L2_Off}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Правый тормоз 1 — выключен" IsChecked="{Binding Brake_R1_Off}" IsHitTestVisible="False"/>
+                            <CheckBox Content="Правый тормоз 2 — выключен" IsChecked="{Binding Brake_R2_Off}" IsHitTestVisible="False"/>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </GroupBox>
 
-                <ToggleButton Content="Block_Dif_12" IsChecked="{Binding Block_Dif_12}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Block_Dif_24" IsChecked="{Binding Block_Dif_24}" Style="{StaticResource normal_toggle}"/>
+            <GroupBox Header="Аналоговые показания и счётчики" Grid.Row="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2.6*"/>
+                            <ColumnDefinition Width="1.1*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                <ToggleButton Content="Ger_On" IsChecked="{Binding Ger_On}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Ger_Off" IsChecked="{Binding Ger_Off}" Style="{StaticResource normal_toggle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Параметр" FontWeight="Bold" Margin="5"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Значение" FontWeight="Bold" Margin="5"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Ед." FontWeight="Bold" Margin="5"/>
+                        <Separator Grid.Row="1" Grid.ColumnSpan="3"/>
 
-                <ToggleButton Content="Motor_Case_L_Open" IsChecked="{Binding Motor_Case_L_Open}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Motor_Case_L_Close" IsChecked="{Binding Motor_Case_L_Close}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Motor_Case_R_Open" IsChecked="{Binding Motor_Case_R_Open}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Motor_Case_R_Close" IsChecked="{Binding Motor_Case_R_Close}" Style="{StaticResource normal_toggle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Закачка перед фильтром (DD1_1)" Margin="5"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DD1_1, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Па" Margin="5"/>
 
-                <ToggleButton Content="Set_Speed" IsChecked="{Binding Set_Speed}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Start" IsChecked="{Binding StartMotor}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="Stop" IsChecked="{Binding StopMotor}" Style="{StaticResource normal_toggle}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Закачка после фильтра (DD1_2)" Margin="5"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DD1_2, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="Па" Margin="5"/>
 
-                <ToggleButton Content="MotorTest" IsChecked="{Binding MotorTest}" Style="{StaticResource normal_toggle}"/>
-                <ToggleButton Content="MotorTest2" IsChecked="{Binding MotorTest2}" Style="{StaticResource normal_toggle}"/>
-            </UniformGrid>
-        </Border>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Откачка перед фильтром (DD2_1)" Margin="5"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DD2_1, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="Па" Margin="5"/>
 
-    </DockPanel>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Откачка после фильтра (DD2_2)" Margin="5"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding DD2_2, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="5" Grid.Column="2" Text="Па" Margin="5"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Общее давление (DD_Ger)" Margin="5"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding DD_Ger, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="6" Grid.Column="2" Text="Па" Margin="5"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Масло в баке — обкаточное (TM_Work)" Margin="5"/>
+                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding TM_Work, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="7" Grid.Column="2" Text="°C" Margin="5"/>
+
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Масло в бочке — чистое (TM_Clear)" Margin="5"/>
+                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding TM_Clear, StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="8" Grid.Column="2" Text="°C" Margin="5"/>
+
+                        <Separator Grid.Row="9" Grid.ColumnSpan="3" Margin="0,7"/>
+
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Счётчик расходомера 1 (Counters[0])" Margin="5"/>
+                        <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding Counters[0]}"/>
+                        <TextBlock Grid.Row="10" Grid.Column="2" Text="имп." Margin="5"/>
+
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Литры расходомера 1 (CounterToLiter[0])" Margin="5"/>
+                        <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding CounterToLiter[0], StringFormat={}{0:F2}}" />
+                        <TextBlock Grid.Row="11" Grid.Column="2" Text="Л." Margin="5"/>
+
+                        <TextBlock Grid.Row="12" Grid.Column="0" Text="Счётчик расходомера 2 (Counters[1])" Margin="5"/>
+                        <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding Counters[1]}"/>
+                        <TextBlock Grid.Row="12" Grid.Column="2" Text="имп." Margin="5"/>
+
+                        <TextBlock Grid.Row="13" Grid.Column="0" Text="Литры расходомера 2 (CounterToLiter[1])" Margin="5"/>
+                        <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding CounterToLiter[1], StringFormat={}{0:F2}}"/>
+                        <TextBlock Grid.Row="13" Grid.Column="2" Text="Л." Margin="5"/>
+
+                    </Grid>
+                </ScrollViewer>
+            </GroupBox>
+        </Grid>
+
+        <!-- RIGHT: management tabs -->
+        <TabControl Grid.Column="1" Margin="5">
+            <TabItem Header="Сервисные команды">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
+                    <StackPanel>
+                        <GroupBox Header="Обкаточное масло" Margin="4">
+                            <UniformGrid Columns="3">
+                                <ToggleButton Content="Закачка масла в правый барабан" IsChecked="{Binding Pump1_Work }" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Закачка масла в левый барабан" IsChecked="{Binding Pump2_Work }" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Закачка масла в центр" IsChecked="{Binding Pump3_Work }" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Чистое масло" Margin="4">
+                            <UniformGrid Columns="3">
+                                <ToggleButton Content="Закачка масла в правый барабан" IsChecked="{Binding Pump1_Clear }" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Закачка масла в левый барабан" IsChecked="{Binding Pump2_Clear }" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Закачка масла в центр" IsChecked="{Binding Pump3_Clear }" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Откачка масла" Margin="4">
+                            <UniformGrid Columns="3">
+                                <ToggleButton Content="Откачка из правого барабана" IsChecked="{Binding Pump1_Out}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Откачка из правого барабана" IsChecked="{Binding Pump2_Out}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Откачка из правого барабана" IsChecked="{Binding Pump3_Out}" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Кожухи" Margin="4">
+                            <UniformGrid Columns="2">
+                                <ToggleButton Content="Открыть правый кожух" IsChecked="{Binding Motor_Case_R_Open}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Открыть левый кожух" IsChecked="{Binding Motor_Case_L_Open}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Закрыть правый кожух" IsChecked="{Binding Motor_Case_R_Close}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Закрыть левый кожух" IsChecked="{Binding Motor_Case_L_Close}" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Тормоз" Margin="4">
+                            <UniformGrid Columns="2">
+                                <ToggleButton Content="Тормоз внешний правый" IsChecked="{Binding Brake_R1}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Тормоз внутренний правый" IsChecked="{Binding Brake_R2}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Тормоз внешний левый" IsChecked="{Binding Brake_L1}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Тормоз внутренний левый" IsChecked="{Binding Brake_L2}" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Блокировка дифференциала" Margin="4">
+                            <UniformGrid Columns="2">
+                                <ToggleButton Content="12 В" IsChecked="{Binding Block_Dif_12}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="24 В" IsChecked="{Binding Block_Dif_24}" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Герметичность" Margin="4">
+                            <UniformGrid Columns="1">
+                                <ToggleButton Content="Вкл" IsChecked="{Binding Ger_On}" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Управление двигателем">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="Управление двигателем" Margin="4">
+                        <StackPanel Margin="6">
+                            <TextBlock Text="Скорость двигателя (целое число):" Margin="0,0,0,4"/>
+
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBox Text="{Binding MotorSpeedInput, UpdateSourceTrigger=PropertyChanged}"
+                                             IsReadOnly="False"
+                                             PreviewTextInput="MotorSpeedInput_PreviewTextInput"
+                                             DataObject.Pasting="MotorSpeedInput_Pasting"
+                                             VerticalContentAlignment="Center"
+                                             MinHeight="38"
+                                             Width="500"/>
+
+                                <Button Content="Задать скорость"
+                                            Command="{Binding ApplyMotorSpeed}"
+                                            MinHeight="38"
+                                            Padding="12,4"/>
+                            </DockPanel>
+
+                            <Button Content="{Binding MotorButtonText}"
+                                Command="{Binding ToggleMotorCommand}"
+                                MinHeight="48"
+                                Margin="4"
+                                Background="Blue"
+                                Foreground="White"/>
+                        </StackPanel>
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Ручное управление">
+                <GroupBox Header="Управление сигналами" Margin="5">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <UniformGrid Columns="4">
+                            <ToggleButton Content="Тены" IsChecked="{Binding Ten}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Мотор 1" IsChecked="{Binding M1}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Мотор 2" IsChecked="{Binding M2}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Мотор 3" IsChecked="{Binding M3}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="K1_M1" IsChecked="{Binding K1_M1}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="K2_M1" IsChecked="{Binding K2_M1}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="K1_M2" IsChecked="{Binding K1_M2}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="K2_M2" IsChecked="{Binding K2_M2}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="K1_M3" IsChecked="{Binding K1_M3}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="K2_M3" IsChecked="{Binding K2_M3}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Q_1_Work" IsChecked="{Binding Q_1_Work}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Q_2_Work" IsChecked="{Binding Q_2_Work}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Q_3_Work" IsChecked="{Binding Q_3_Work}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Q_1_Clear" IsChecked="{Binding Q_1_Clear}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Q_2_Clear" IsChecked="{Binding Q_2_Clear}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Q_3_Clear" IsChecked="{Binding Q_3_Clear}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Brake_L1" IsChecked="{Binding Brake_L1}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Brake_L2" IsChecked="{Binding Brake_L2}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Brake_R1" IsChecked="{Binding Brake_R1}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Brake_R2" IsChecked="{Binding Brake_R2}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Блокировка 12" IsChecked="{Binding Block_Dif_12}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Блокировка 24" IsChecked="{Binding Block_Dif_24}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Герметизация Вкл." IsChecked="{Binding Ger_On}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Открыть кожух L" IsChecked="{Binding Motor_Case_L_Open}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Закрыть кожух L" IsChecked="{Binding Motor_Case_L_Close}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Открыть кожух R" IsChecked="{Binding Motor_Case_R_Open}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Закрыть кожух R" IsChecked="{Binding Motor_Case_R_Close}" Style="{StaticResource ManagementToggle}"/>
+                        </UniformGrid>
+                    </ScrollViewer>
+                </GroupBox>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </Window>
