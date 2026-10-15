@@ -47,5 +47,15 @@ namespace KreativStend
                 error.IsActive = false;
             }
         }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new SensorConfigWindow
+            {
+                Owner = this
+            };
+
+            window.ShowDialog();
+        }
     }
 }

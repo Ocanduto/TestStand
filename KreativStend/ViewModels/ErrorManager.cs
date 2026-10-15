@@ -69,8 +69,8 @@ namespace KreativStend.ViewModels
             AddError(103, 1, "Датчик DD2_1: нет связи");
             AddError(104, 1, "Датчик DD2_2: нет связи");
             AddError(105, 1, "Датчик DD_Ger: нет связи");
-            AddError(106, 1, "Датчик TM1: нет связи");
-            AddError(107, 1, "Датчик TM2: нет связи");
+            AddError(106, 1, "Датчик TM_Work: нет связи");
+            AddError(107, 1, "Датчик TM_Clear: нет связи");
 
             AddError(201, 1, "Нет связи с PLC");
             AddError(202, 1, "Нет связи с мотором по RS485");

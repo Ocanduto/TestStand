@@ -366,7 +366,19 @@
                                Foreground="{StaticResource MutedBrush}"
                                Margin="0,4,0,0"
                                TextWrapping="Wrap"/>
+                          
                 </StackPanel>
+
+                <Button Grid.Column="1"
+                    Content="Настройка"
+                    Width="120"
+                    Height="38"
+                    Margin="10,0,0,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource BlueBrush}"
+                    Foreground="White"
+                    Click="SettingsButton_Click"/>      
 
                 <Border Grid.Row="1"
                         BorderBrush="{StaticResource LineBrush}"

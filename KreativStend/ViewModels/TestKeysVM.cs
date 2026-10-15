@@ -1,8 +1,11 @@
-﻿using NModbus;
+﻿using KreativStend.Properties;
+using NModbus;
 using NModbus.Serial;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query.ExpressionTranslators.Internal;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
@@ -11,6 +14,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using WPFHelper;
 
 namespace KreativStend.ViewModels
 {
@@ -26,8 +30,12 @@ namespace KreativStend.ViewModels
             Ten = Properties.Settings.Default.Tens_On;
             MotorSpeed = Properties.Settings.Default.MotorSpeed;
 
+            Check = 0;
+            MotorButtonText = "Старт";
             timer = new Timer(On_Tick);
             timer.Change(0, 500);
+
+            Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
         }
 
         private SerialPort port;
@@ -38,6 +46,8 @@ namespace KreativStend.ViewModels
         private TcpClient tcpClient;
 
         public ObservableCollection<string> COMPORTS { get; set; }
+
+        public long Check { get => Get<long>(); set { Set(value); } }
 
         public bool IsConnected { get => Get<bool>(); set { Set(value); } }
         public string COMPORT { get => Get<string>(); set => Set(value); }
@@ -73,9 +83,9 @@ namespace KreativStend.ViewModels
         public double DD2_1 { get => Get<double>(); set => Set(value); }
         public double DD2_2 { get => Get<double>(); set => Set(value); }
         public double DD_Ger { get => Get<double>(); set => Set(value); }
-        public double TM1 { get => Get<double>(); set => Set(value); }
+        public double TM_Work { get => Get<double>(); set => Set(value); }
 
-        public double TM2 { get => Get<double>(); set => Set(value); }
+        public double TM_Clear { get => Get<double>(); set => Set(value); }
         public ushort[] Counters { get => Get<ushort[]>(); set => Set(value); }
         //public string Torque { get => Get<string>(); set => Set(value); }
         //public string Speed { get => Get<string>(); set => Set(value); }
@@ -139,25 +149,84 @@ namespace KreativStend.ViewModels
         public int ErrorState { get => Get<int>(); set { Set(value); } }
         public bool Warning { get => Get<bool>(); set => Set(value); }
 
+        public double[] CounterToLiter { get => Get<double[]>(); set { Set(value); } }
+
+        public List<CoefChank> Coefs { get; } = new List<CoefChank>();
+
         public ErrorManager ErrorManager { get; } = new ErrorManager();
 
         public bool IsTestRunning { get; set; }
 
-        private const int FilterCheckDelayMs = 5000;
-
         private DateTime? _dd1FlowStarted;
         private DateTime? _dd2FlowStarted;
 
-        private const int FlowmeterMinPulsesPerSecond = 100;
-        // Временные лимиты вибродатчиков — позже перенести в конфигуратор
-        private const double VibrationAxisMin = -999.0;
-        private const double VibrationAxisMax = 999.0;
+        public bool Pump1_Work { get => Get<bool>(); set => Set(value); }
+        public bool Pump2_Work { get => Get<bool>(); set => Set(value); }
+        public bool Pump3_Work { get => Get<bool>(); set => Set(value); }
 
-        private const double VibrationModuleMin = 0.0;
-        private const double VibrationModuleMax = 999.0;
+        public bool Pump1_Clear { get => Get<bool>(); set => Set(value); }
+        public bool Pump2_Clear { get => Get<bool>(); set => Set(value); }
+        public bool Pump3_Clear { get => Get<bool>(); set => Set(value); }
 
-        private const double VibrationTemperatureMin = -50.0;
-        private const double VibrationTemperatureMax = 200.0;
+        private bool Pump1_Work_Pressed;
+        private bool Pump2_Work_Pressed;
+        private bool Pump3_Work_Pressed;
+
+        private bool Pump1_Clear_Pressed;
+        private bool Pump2_Clear_Pressed;
+        private bool Pump3_Clear_Pressed;
+
+        public bool Pump1_Out { get => Get<bool>(); set => Set(value); }
+        public bool Pump2_Out { get => Get<bool>(); set => Set(value); }
+        public bool Pump3_Out { get => Get<bool>(); set => Set(value); }
+
+        private bool Pump1_Out_Pressed;
+        private bool Pump2_Out_Pressed;
+        private bool Pump3_Out_Pressed;
+
+        private string _motorSpeedInput = "0";
+
+        public string MotorSpeedInput
+        {
+            get => Get<string>();
+            set => Set(value);
+        }
+
+        private bool _nextActionIsStart = true;
+
+        private WPFHelper.Commands.ViewModelCommandHandler _ToggleMotor = new();
+
+        public ICommand ToggleMotorCommand =>
+            _ToggleMotor.Get(On_ToggleMotor);
+
+        public string MotorButtonText
+        {
+            get => Get<string>();
+            set => Set(value);
+        }
+
+        private void On_ToggleMotor()
+        {
+            if (_nextActionIsStart)
+            {
+                // Отправляем команду запуска
+                StopMotor = false;
+                StartMotor = true;
+
+                MotorButtonText = "Стоп";
+                _nextActionIsStart = false;
+            }
+            else
+            {
+                // Отправляем команду остановки
+                StartMotor = false;
+                StopMotor = true;
+
+                MotorButtonText = "Старт";
+                _nextActionIsStart = true;
+            }
+        }
+
 
         private sealed class FlowmeterCheckState
         {
@@ -177,20 +246,17 @@ namespace KreativStend.ViewModels
         public ICommand OpenConnection => _OpenConnection.Get(On_OpenConnection, () => !string.IsNullOrWhiteSpace(COMPORT) && !IsConnected);
         public ICommand CloseConnection => _CloseConnection.Get(On_CloseConnection, () => IsConnected);
 
+        private WPFHelper.Commands.ViewModelCommandHandler _ApplyMotorSpeed = new();
+
+        public ICommand ApplyMotorSpeed =>
+            _ApplyMotorSpeed.Get(On_ApplyMotorSpeed);
+
 
 
         private async void On_Tick(object? state)
         {
-
+            timer.Change(Timeout.Infinite, Timeout.Infinite);
             await CheckErrors();
-            Warning = true;
-            if (Warning)
-            {
-                //Application.Current.Dispatcher.Invoke(() =>
-                //{
-                //	MainWindowVM.Current.TriangleColor = new SolidColorBrush(Colors.Red);
-                //});
-            }
 
             //       if (port != null && port.IsOpen && false)
             //       {
@@ -274,48 +340,49 @@ namespace KreativStend.ViewModels
 
             if (port2 != null && port2.IsOpen)
             {
-                //SaveSet_Speed_1 = 0;
-                if (!StartMotor & SaveStart)
-                {
+                if (!StartMotor)
                     SaveStart = false;
-                }
-                if (!StopMotor & SaveStop)
-                {
-                    SaveStop = false;
-                }
-                if (SaveSet_Speed != MotorSpeed && !Set_Speed)
-                {
-                    Set_Speed = true;
-                    SaveSet_Speed = MotorSpeed;
-                }
-                if (Set_Speed && MotorSpeed != 0)
-                {
-                    Set_Speed = false;
-                    GoStart = false;
-                    byte[] command = BuildSpeedCommand(MotorSpeed);
 
-                    port2.Write(command, 0, command.Length);
+                if (!StopMotor)
+                    SaveStop = false;
+
+                // Отправка скорости с ожиданием
+                if (SaveSet_Speed != MotorSpeed && MotorSpeed != 0)
+                {
+                    byte[] speedCommand = BuildSpeedCommand(MotorSpeed);
+                    port2.Write(speedCommand, 0, speedCommand.Length);
+
+                    SaveSet_Speed = MotorSpeed;
 
                     await Task.Delay(500);
-                    GoStart = true;
                 }
+
+                // Остановка — один раз
                 if (StopMotor && !SaveStop)
                 {
-                    // Отправка команды
                     SaveStop = true;
-                    byte[] command = { 0x01, 0x06, 0x06, 0x05, 0x08, 0x81, 0x5E, 0xE3 }; //01 06 06 05 08 81 5E E3
+
+                    byte[] command =
+                    {
+                        0x01, 0x06, 0x06, 0x05,
+                        0x08, 0x81, 0x5E, 0xE3
+                    };
+
                     port2.Write(command, 0, command.Length);
                 }
-                else if (StartMotor && !SaveStart && GoStart)
+                // Запуск — один раз, после ожидания установки скорости
+                else if (StartMotor && !SaveStart && MotorSpeed != 0
+                         && SaveSet_Speed == MotorSpeed)
                 {
-                    // Отправка команды
                     SaveStart = true;
-                    byte[] command = { 0x01, 0x06, 0x06, 0x05, 0x08, 0x82, 0x1E, 0xE2 }; //01 06 06 05 08 82 1E E2
+
+                    byte[] command =
+                    {
+                        0x01, 0x06, 0x06, 0x05,
+                        0x08, 0x82, 0x1E, 0xE2
+                    };
+
                     port2.Write(command, 0, command.Length);
-                }
-                if(MotorSpeed == 0 && SaveStart)
-                {
-                    SaveStart = false;
                 }
             }
 
@@ -323,6 +390,23 @@ namespace KreativStend.ViewModels
 
             try
             {
+                if (!ErrorManager.ShouldStopTest)
+                {
+                    HandleServiceButtons();
+                }
+                else
+                {
+                    Pump1_Work = false;
+                    Pump2_Work = false;
+                    Pump3_Work = false;
+                    Pump1_Clear = false;
+                    Pump2_Clear = false;
+                    Pump3_Clear = false;
+                    Pump1_Out = false;
+                    Pump2_Out = false;
+                    Pump3_Out = false;
+                }
+
                 if (!IsConnected || master == null)
                 {
                     UM1 = false;
@@ -440,6 +524,22 @@ namespace KreativStend.ViewModels
                     Motor_Case_R_Open = false;
                 }
 
+                if (ErrorManager.ShouldStopTest)
+                {
+                    HandleServiceButtons();
+
+                    Pump1_Work = false;
+                    Pump2_Work = false;
+                    Pump3_Work = false;
+                    Pump1_Clear = false;
+                    Pump2_Clear = false;
+                    Pump3_Clear = false;
+                    Pump1_Out = false;
+                    Pump2_Out = false;
+                    Pump3_Out = false;
+                }
+
+
                 var sendData = new bool[32]
                 {
                     Ten,
@@ -500,6 +600,11 @@ namespace KreativStend.ViewModels
                 var data_float = await master.ReadHoldingRegistersAsync(1, 4, 12);
                 Counters = await master.ReadHoldingRegistersAsync(1, 16, 2);
 
+                for(int i = 0; i < 2; i++)
+                {
+                    CounterToLiter[0] = Counters[0] / Coefs[0].Coef;
+                }
+
                 if (Counters != null && Counters.Length >= 2)
                 {
                     // Расходомер №1: насос M1 и клапаны K1_M1, K2_M1.
@@ -539,19 +644,35 @@ namespace KreativStend.ViewModels
                 DD1_2 = Floats_From_PLC[1];
                 DD2_1 = Floats_From_PLC[2];
                 DD2_2 = Floats_From_PLC[3];
-                TM1 = Floats_From_PLC[4];
+                TM_Work = Floats_From_PLC[4];
                 DD_Ger = Floats_From_PLC[5];
             }
             catch (Exception e)
             {
                 IsConnected = false;
                 MessageBox.Show(e.ToString());
-            }
+            } 
             finally
             {
-                timer.Change(0, 500);
+                timer.Change(100, Timeout.Infinite);
             }
             Warning = false;
+        }
+
+        private void On_ApplyMotorSpeed()
+        {
+            if (!int.TryParse(MotorSpeedInput, out int speed))
+            {
+                MessageBox.Show(
+                    "Введите целое число скорости.",
+                    "Некорректная скорость",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            MotorSpeed = speed;
         }
 
         private async void On_OpenConnection()
@@ -761,99 +882,115 @@ namespace KreativStend.ViewModels
 
         public async Task CheckErrors()
         {
-
-            // Ошибка 101 — датчик DD1_1 вне допустимого диапазона
-            if (DD1_1 > 2400 || DD1_1 < -100)
+            // 101–104: датчики давления
+            if (DD1_1 < SensorLimits.GetDouble("DD1_1_Min") ||
+                DD1_1 > SensorLimits.GetDouble("DD1_1_Max"))
                 ErrorManager.RaiseError(101);
 
-            // Ошибка 102 — датчик DD1_2 вне допустимого диапазона
-            if (DD1_2 > 2400 || DD1_2 < -100)
+            if (DD1_2 < SensorLimits.GetDouble("DD1_2_Min") ||
+                DD1_2 > SensorLimits.GetDouble("DD1_2_Max"))
                 ErrorManager.RaiseError(102);
 
-            // Ошибка 103 — датчик DD2_1 вне допустимого диапазона
-            if (DD2_1 > 2400 || DD2_1 < -100)
+            if (DD2_1 < SensorLimits.GetDouble("DD2_1_Min") ||
+                DD2_1 > SensorLimits.GetDouble("DD2_1_Max"))
                 ErrorManager.RaiseError(103);
 
-            // Ошибка 104 — датчик DD2_2 вне допустимого диапазона
-            if (DD2_2 > 2400 || DD2_2 < -100)
+            if (DD2_2 < SensorLimits.GetDouble("DD2_2_Min") ||
+                DD2_2 > SensorLimits.GetDouble("DD2_2_Max"))
                 ErrorManager.RaiseError(104);
 
-            // Ошибка 105 — датчик DD_Ger вне допустимого диапазона
-            if (!IsTestRunning)
+            // 105: DD_Ger проверяется вне теста
+            if (!IsTestRunning &&
+                (DD_Ger < SensorLimits.GetDouble("DD_Ger_Min") ||
+                 DD_Ger > SensorLimits.GetDouble("DD_Ger_Max")))
             {
-                if (DD_Ger > 6000 || DD_Ger < -10)
-                    ErrorManager.RaiseError(105);
+                ErrorManager.RaiseError(105);
             }
 
-            // Ошибка 106 — датчик температуры TM1 вне технического диапазона
-            if (TM1 > 180 || TM1 < -60)
+            // 106–107: технические диапазоны температуры
+            if (TM_Work < SensorLimits.GetDouble("TM_Work_Min") ||
+                TM_Work > SensorLimits.GetDouble("TM_Work_Max"))
                 ErrorManager.RaiseError(106);
 
-            // Ошибка 107 — датчик температуры TM2 вне технического диапазона
-            if (TM2 > 180 || TM2 < -60)
+            if (TM_Clear < SensorLimits.GetDouble("TM_Clear_Min") ||
+                TM_Clear > SensorLimits.GetDouble("TM_Clear_Max"))
                 ErrorManager.RaiseError(107);
 
-            // Ошибка 501 — температура масла в баке №1 вне рабочего диапазона 70–80
-            if (TM1 < 70 || TM1 > 80)
+            // 501–502: рабочие диапазоны температуры
+            if (TM_Work < SensorLimits.GetDouble("TM_Work_Work_Min") ||
+                TM_Work > SensorLimits.GetDouble("TM_Work_Work_Max"))
                 ErrorManager.RaiseError(501);
 
-            // Ошибка 502 — температура масла в баке №2 вне рабочего диапазона 70–80
-            if (TM2 < 70 || TM2 > 80)
+            if (TM_Clear < SensorLimits.GetDouble("TM_Clear_Work_Min") ||
+                TM_Clear > SensorLimits.GetDouble("TM_Clear_Work_Max"))
                 ErrorManager.RaiseError(502);
 
-            // Ошибка 601 — фильтр DD1_1 — DD1_2
-            bool dd1FlowActive = IsTestRunning
-                                 && M1
-                                 && K1_M1
-                                 && K2_M1;
+            // 601: фильтр №1
+            bool dd1FlowActive =
+                IsTestRunning &&
+                M1 &&
+                K1_M1 &&
+                K2_M1;
 
             if (dd1FlowActive)
             {
                 _dd1FlowStarted ??= DateTime.UtcNow;
 
                 if ((DateTime.UtcNow - _dd1FlowStarted.Value).TotalMilliseconds
-                    >= FilterCheckDelayMs)
+                    >= SensorLimits.GetInt("FilterCheckDelay"))
                 {
-                    if (DD1_2 - DD1_1 > 0)
+                    double pressureDifference = DD1_2 - DD1_1;
+
+                    if (pressureDifference >
+                        SensorLimits.GetDouble("Filter1MaxPressureDifference"))
+                    {
                         ErrorManager.RaiseError(601);
+                    }
                 }
             }
             else
             {
+                // Сбрасываем только таймер, ошибка остаётся активной.
                 _dd1FlowStarted = null;
             }
 
-            // Ошибка 602 — фильтр DD2_1 — DD2_2
-            bool dd2FlowActive = IsTestRunning
-                                 && M2
-                                 && K1_M2
-                                 && K2_M2;
+            // 602: фильтр №2
+            bool dd2FlowActive =
+                IsTestRunning &&
+                M2 &&
+                K1_M2 &&
+                K2_M2;
 
             if (dd2FlowActive)
             {
                 _dd2FlowStarted ??= DateTime.UtcNow;
 
                 if ((DateTime.UtcNow - _dd2FlowStarted.Value).TotalMilliseconds
-                    >= FilterCheckDelayMs)
+                    >= SensorLimits.GetInt("FilterCheckDelay"))
                 {
-                    if (DD2_2 - DD2_1 > 0)
+                    double pressureDifference = DD2_2 - DD2_1;
+
+                    if (pressureDifference >
+                        SensorLimits.GetDouble("Filter2MaxPressureDifference"))
+                    {
                         ErrorManager.RaiseError(602);
+                    }
                 }
             }
             else
             {
+                // Сбрасываем только таймер, ошибка остаётся активной.
                 _dd2FlowStarted = null;
             }
 
-            // Ошибка 401 — низкий уровень масла в баке №1 (сигнал UM2)
+            // 401–402: датчики уровня масла
             if (UM2)
                 ErrorManager.RaiseError(401);
 
-            // Ошибка 402 — низкий уровень масла в баке №2 (сигнал UM3)
             if (UM3)
                 ErrorManager.RaiseError(402);
 
-            // Ошибка 301 — некорректные данные вибродатчика №1
+            // 301: вибродатчик №1
             if (IsTestRunning)
             {
                 bool vibration1AllZero =
@@ -869,17 +1006,26 @@ namespace KreativStend.ViewModels
                     !double.IsFinite(V_Z_1) ||
                     !double.IsFinite(V_M_1) ||
                     !double.IsFinite(V_T_1) ||
-                    V_X_1 < VibrationAxisMin || V_X_1 > VibrationAxisMax ||
-                    V_Y_1 < VibrationAxisMin || V_Y_1 > VibrationAxisMax ||
-                    V_Z_1 < VibrationAxisMin || V_Z_1 > VibrationAxisMax ||
-                    V_M_1 < VibrationModuleMin || V_M_1 > VibrationModuleMax ||
-                    V_T_1 < VibrationTemperatureMin ||
-                    V_T_1 > VibrationTemperatureMax;
 
-                if (vibration1AllZero || vibration1OutOfLimits)
+                    V_X_1 < SensorLimits.GetDouble("V1_X_Min") ||
+                    V_X_1 > SensorLimits.GetDouble("V1_X_Max") ||
+                    V_Y_1 < SensorLimits.GetDouble("V1_Y_Min") ||
+                    V_Y_1 > SensorLimits.GetDouble("V1_Y_Max") ||
+                    V_Z_1 < SensorLimits.GetDouble("V1_Z_Min") ||
+                    V_Z_1 > SensorLimits.GetDouble("V1_Z_Max") ||
+                    V_M_1 < SensorLimits.GetDouble("V1_M_Min") ||
+                    V_M_1 > SensorLimits.GetDouble("V1_M_Max") ||
+                    V_T_1 < SensorLimits.GetDouble("V1_T_Min") ||
+                    V_T_1 > SensorLimits.GetDouble("V1_T_Max");
+
+                if ((SensorLimits.GetBool("V1_ZeroIsError") &&
+                     vibration1AllZero) ||
+                    vibration1OutOfLimits)
+                {
                     ErrorManager.RaiseError(301);
+                }
 
-                // Ошибка 302 — некорректные данные вибродатчика №2
+                // 302: вибродатчик №2
                 bool vibration2AllZero =
                     V_X_2 == 0 &&
                     V_Y_2 == 0 &&
@@ -893,17 +1039,29 @@ namespace KreativStend.ViewModels
                     !double.IsFinite(V_Z_2) ||
                     !double.IsFinite(V_M_2) ||
                     !double.IsFinite(V_T_2) ||
-                    V_X_2 < VibrationAxisMin || V_X_2 > VibrationAxisMax ||
-                    V_Y_2 < VibrationAxisMin || V_Y_2 > VibrationAxisMax ||
-                    V_Z_2 < VibrationAxisMin || V_Z_2 > VibrationAxisMax ||
-                    V_M_2 < VibrationModuleMin || V_M_2 > VibrationModuleMax ||
-                    V_T_2 < VibrationTemperatureMin ||
-                    V_T_2 > VibrationTemperatureMax;
 
-                if (vibration2AllZero || vibration2OutOfLimits)
+                    V_X_2 < SensorLimits.GetDouble("V2_X_Min") ||
+                    V_X_2 > SensorLimits.GetDouble("V2_X_Max") ||
+                    V_Y_2 < SensorLimits.GetDouble("V2_Y_Min") ||
+                    V_Y_2 > SensorLimits.GetDouble("V2_Y_Max") ||
+                    V_Z_2 < SensorLimits.GetDouble("V2_Z_Min") ||
+                    V_Z_2 > SensorLimits.GetDouble("V2_Z_Max") ||
+                    V_M_2 < SensorLimits.GetDouble("V2_M_Min") ||
+                    V_M_2 > SensorLimits.GetDouble("V2_M_Max") ||
+                    V_T_2 < SensorLimits.GetDouble("V2_T_Min") ||
+                    V_T_2 > SensorLimits.GetDouble("V2_T_Max");
+
+                if ((SensorLimits.GetBool("V2_ZeroIsError") &&
+                     vibration2AllZero) ||
+                    vibration2OutOfLimits)
+                {
                     ErrorManager.RaiseError(302);
+                }
             }
+
+            await Task.CompletedTask;
         }
+
 
         private void CheckFlowmeter(
             FlowmeterCheckState state,
@@ -913,24 +1071,30 @@ namespace KreativStend.ViewModels
             ushort counter,
             int errorCode)
         {
-            // Проверяем только во время обкатки,
-            // когда насос и оба клапана включены.
-            bool active = IsTestRunning
-                          && pumpOn
-                          && valve1On
-                          && valve2On;
+            bool ServiceActive =
+                Pump1_Work ||
+                Pump2_Work ||
+                Pump3_Work ||
+                Pump1_Clear ||
+                Pump2_Clear ||
+                Pump3_Clear;
+
+            bool active =
+                (IsTestRunning || ServiceActive) &&
+                pumpOn &&
+                valve1On &&
+                valve2On;
 
             if (!active)
             {
+                // Сбрасываем состояние измерения, не ошибку.
                 state.Stopwatch.Reset();
                 state.WasActive = false;
                 state.HasBaseline = false;
-
-                // Ошибку здесь не сбрасываем.
                 return;
             }
 
-            // Новый запуск: начинаем отсчёт заново.
+            // Начало нового цикла измерения.
             if (!state.WasActive)
             {
                 state.WasActive = true;
@@ -941,12 +1105,11 @@ namespace KreativStend.ViewModels
 
             long elapsedMs = state.Stopwatch.ElapsedMilliseconds;
 
-            // Даём расходомеру 2 секунды на запуск.
-            if (elapsedMs < 2000)
+            // Задержка запуска расходомера из настроек.
+            if (elapsedMs < SensorLimits.GetInt("FlowmeterStartDelay"))
                 return;
 
-            // Первый замер после стартовой задержки —
-            // сохраняем значение, но ещё не проверяем прирост.
+            // Фиксируем исходное значение счётчика после задержки.
             if (!state.HasBaseline)
             {
                 state.LastCounter = counter;
@@ -955,20 +1118,25 @@ namespace KreativStend.ViewModels
                 return;
             }
 
-            // Сравниваем показания примерно раз в секунду.
-            if (elapsedMs - state.LastSampleMs < 1000)
+            // Интервал измерения из настроек.
+            if (elapsedMs - state.LastSampleMs <
+                SensorLimits.GetInt("FlowmeterSampleInterval"))
+            {
                 return;
+            }
 
             int delta = counter - state.LastCounter;
 
             state.LastCounter = counter;
             state.LastSampleMs = elapsedMs;
 
-            if (delta < FlowmeterMinPulsesPerSecond)
+            // Недостаточный прирост импульсов — регистрируем ошибку.
+            if (delta < SensorLimits.GetInt("FlowmeterMinPulses"))
                 ErrorManager.RaiseError(errorCode);
 
-            // Если расход нормальный, ошибку не сбрасываем.
+            // Нормальный расход не снимает ранее зарегистрированную ошибку.
         }
+
 
 
 
@@ -1006,5 +1174,133 @@ namespace KreativStend.ViewModels
 
 			return crc;
 		}
-	}
+
+        private void HandleServiceButton(
+            bool command,
+            ref bool pressed,
+            Action<bool> setQ,
+            Action<bool> setMotor,
+            Action<bool> setK1,
+            Action<bool> setK2,
+            bool other1Pressed,
+            bool other2Pressed)
+        {
+            if (command && !pressed)
+            {
+                pressed = true;
+
+                setMotor(true);
+                setK1(true);
+                setK2(true);
+                setQ(true);
+            }
+            else if (!command && pressed)
+            {
+                pressed = false;
+                setQ(false);
+
+                if (!other1Pressed && !other2Pressed)
+                {
+                    setMotor(false);
+                    setK1(false);
+                    setK2(false);
+                }
+            }
+        }
+
+        private void HandleServiceButtons()
+        {
+            // WORK: общие M1 и контакторы
+            HandleServiceButton(
+                Pump1_Work, ref Pump1_Work_Pressed,
+                v => Q_1_Work = v,
+                v => M1 = v,
+                v => K1_M1 = v,
+                v => K2_M1 = v,
+                Pump2_Work_Pressed, Pump3_Work_Pressed);
+
+            HandleServiceButton(
+                Pump2_Work, ref Pump2_Work_Pressed,
+                v => Q_2_Work = v,
+                v => M1 = v,
+                v => K1_M1 = v,
+                v => K2_M1 = v,
+                Pump1_Work_Pressed, Pump3_Work_Pressed);
+
+            HandleServiceButton(
+                Pump3_Work, ref Pump3_Work_Pressed,
+                v => Q_3_Work = v,
+                v => M1 = v,
+                v => K1_M1 = v,
+                v => K2_M1 = v,
+                Pump1_Work_Pressed, Pump2_Work_Pressed);
+
+            // CLEAR: общие M3 и контакторы
+            HandleServiceButton(
+                Pump1_Clear, ref Pump1_Clear_Pressed,
+                v => Q_1_Clear = v,
+                v => M3 = v,
+                v => K1_M3 = v,
+                v => K2_M3 = v,
+                Pump2_Clear_Pressed, Pump3_Clear_Pressed);
+
+            HandleServiceButton(
+                Pump2_Clear, ref Pump2_Clear_Pressed,
+                v => Q_2_Clear = v,
+                v => M3 = v,
+                v => K1_M3 = v,
+                v => K2_M3 = v,
+                Pump1_Clear_Pressed, Pump3_Clear_Pressed);
+
+            HandleServiceButton(
+                Pump3_Clear, ref Pump3_Clear_Pressed,
+                v => Q_3_Clear = v,
+                v => M3 = v,
+                v => K1_M3 = v,
+                v => K2_M3 = v,
+                Pump1_Clear_Pressed, Pump2_Clear_Pressed);
+
+            // OUT: M2 и его контакторы, клапаны Q_1_Work, Q_2_Work, Q_3_Work
+
+            HandleServiceButton(
+                Pump1_Out, ref Pump1_Out_Pressed,
+                v => Q_1_Work = v,
+                v => M2 = v,
+                v => K1_M2 = v,
+                v => K2_M2 = v,
+                Pump2_Out_Pressed, Pump3_Out_Pressed);
+
+            HandleServiceButton(
+                Pump2_Out, ref Pump2_Out_Pressed,
+                v => Q_2_Work = v,
+                v => M2 = v,
+                v => K1_M2 = v,
+                v => K2_M2 = v,
+                Pump1_Out_Pressed, Pump3_Out_Pressed);
+
+            HandleServiceButton(
+                Pump3_Out, ref Pump3_Out_Pressed,
+                v => Q_3_Work = v,
+                v => M2 = v,
+                v => K1_M2 = v,
+                v => K2_M2 = v,
+                Pump1_Out_Pressed, Pump2_Out_Pressed);
+        }
+
+        private static IEnumerable<CoefChank> GetCoefChank(StringCollection strings)
+        {
+            if (strings == null) yield break;
+
+            foreach (var CoefChankStr in strings)
+            {
+                var arr = CoefChankStr.Split(':');
+                if (arr.Length == 2)
+                    yield return new CoefChank
+                    {
+                        Index = Convert.ToInt32(arr[0]),
+                        Coef = Convert.ToDouble(arr[1])
+                    };
+            }
+        }
+    }
 }

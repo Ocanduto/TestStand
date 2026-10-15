@@ -18,7 +18,8 @@ namespace KreativStend.ViewModels
 
 			ScriptItems = [];
 
-            _timer = new Timer(On_Tick_Callback, null, 0, 250);
+            _timer = new Timer(On_Tick_Callback);
+            _timer.Change(0, 250);
 
             UserName = " ";
 
@@ -105,12 +106,7 @@ namespace KreativStend.ViewModels
 
         private void On_Tick_Callback(object? state)
         {
-            _timer.Change(Timeout.Infinite, Timeout.Infinite);
-
             Title = $"Дата: {DateTime.Now:dd.MM.yyyy} | Время: {DateTime.Now:HH:mm:ss}";
-
-
-            _timer.Change(0, 250);
         }
 	}
 }

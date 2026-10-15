@@ -97,7 +97,7 @@ namespace KreativStend.ViewModels
 		private void On_Exit_Command()
 		{
             App.ProcessKeys.IsTestRunning = false;
-
+			ZeroParams();
             StepIndex = -1;
 			App.NavigateHide();
 		}
@@ -122,11 +122,13 @@ namespace KreativStend.ViewModels
 
             StepIndex = 0;
 			ZeroParams();
+
 			App.Navigate<NewTestPage>(q => q.DataContext = this);
 		}
 
 		private async void On_Error_Command()
 		{
+			ZeroParams();
 			if (testId > 0 && SaveStep > 0)
 			{
 				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
@@ -140,7 +142,9 @@ namespace KreativStend.ViewModels
 				});
 			}
 
-			StepIndex = 0;
+            App.ProcessKeys.IsTestRunning = false;
+
+            StepIndex = 0;
 			App.Navigate<NewTestPage>(q => q.DataContext = this);
 		}
 
@@ -218,9 +222,19 @@ namespace KreativStend.ViewModels
 
 			try
 			{
-				if (StepIndex > 0)
+                if (App.ProcessKeys.ErrorManager.ShouldStopTest)
+                {
+					On_Error_Command();
+                }
+                if (StepIndex > 0)
 				{
-					App.ProcessKeys.M1 = LogicItems[StepIndex - 1].M1;
+					App.ProcessKeys.Pump1_Work = false;
+                    App.ProcessKeys.Pump2_Work = false;
+                    App.ProcessKeys.Pump3_Work = false;
+                    App.ProcessKeys.Pump1_Clear = false;
+                    App.ProcessKeys.Pump2_Clear = false;
+                    App.ProcessKeys.Pump3_Clear = false;
+                    App.ProcessKeys.M1 = LogicItems[StepIndex - 1].M1;
 					App.ProcessKeys.M2 = LogicItems[StepIndex - 1].M2;
 					App.ProcessKeys.M3 = LogicItems[StepIndex - 1].M3;
 
@@ -394,7 +408,7 @@ namespace KreativStend.ViewModels
 
 								var startTime = DateTime.Now;
 								var endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
-								while (startTime < endTime && !App.ProcessKeys.ERROR)
+								while (startTime < endTime && !App.ProcessKeys.ERROR && !App.ProcessKeys.ErrorManager.ShouldStopTest)
 								{
 									await Task.Delay(250);
 									startTime = DateTime.Now;
@@ -454,7 +468,7 @@ namespace KreativStend.ViewModels
 								var startTime = DateTime.Now;
 								var endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
 								StartDavlenie = App.ProcessKeys.DD_Ger;
-								while (startTime < endTime && !App.ProcessKeys.ERROR)
+								while (startTime < endTime && !App.ProcessKeys.ERROR && !App.ProcessKeys.ErrorManager.ShouldStopTest)
 								{
 									await Task.Delay(250);
 									startTime = DateTime.Now;
@@ -515,7 +529,7 @@ namespace KreativStend.ViewModels
 									{
 
 										await Task.Delay(5000);
-										while (App.ProcessKeys.DD2_1 < Convert.ToInt32(LogicItems[StepIndex - 1].FunctionArgs) && !App.ProcessKeys.ERROR)
+										while (App.ProcessKeys.DD2_1 < Convert.ToInt32(LogicItems[StepIndex - 1].FunctionArgs) && !App.ProcessKeys.ERROR && !App.ProcessKeys.ErrorManager.ShouldStopTest)
 										{
 											await Task.Delay(250);
 											App.Current.Dispatcher.Invoke(() =>
@@ -755,6 +769,8 @@ namespace KreativStend.ViewModels
             App.ProcessKeys.Motor_Case_L_Open = false;
             App.ProcessKeys.Motor_Case_R_Close = false;
             App.ProcessKeys.Motor_Case_R_Open = false;
+			App.ProcessKeys.StopMotor = true;
+            App.ProcessKeys.StartMotor = true;
         }
 
 		private void Navigator(bool noNav = false)
