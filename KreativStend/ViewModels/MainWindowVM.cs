@@ -57,11 +57,13 @@ namespace KreativStend.ViewModels
 			var data = File.ReadAllText(SelectedScript.ScriptName);
 			var items = JsonConvert.DeserializeObject<List<LogicItemVM>>(data);
 
+			var Config = SensorConfigLoader.LoadConfig(Properties.Settings.Default.SensorConfigPath);
 
 			App.Navigate<Pages.NewTestPage>(q => q.DataContext = new ProcessStepsVM
             {
-                TestType = arg,
-				LogicItems = new ObservableCollection<LogicItemVM>(items)
+                TestType = SelectedScript.Title,
+				LogicItems = new ObservableCollection<LogicItemVM>(items),
+				SensorConfig = Config
 			});
         }
 

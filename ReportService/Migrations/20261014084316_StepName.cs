@@ -5,23 +5,24 @@
 namespace ReportService.Migrations
 {
     /// <inheritdoc />
-    public partial class Steps_Info : Migration
+    public partial class StepName : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Info",
+                name: "Name",
                 table: "StepsCollection",
                 type: "text",
-                nullable: true);
+                nullable: false,
+                defaultValue: "");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Info",
+                name: "Name",
                 table: "StepsCollection");
         }
     }

@@ -18,7 +18,7 @@
       <Value Profile="(Default)">10</Value>
     </Setting>
     <Setting Name="ScriptsFolder" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">C:\Scripts</Value>
+      <Value Profile="(Default)">D:\Nikita\Обкаточный стенд ПРОМПК\Мост\Scripts</Value>
     </Setting>
     <Setting Name="Coefs" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
@@ -53,6 +53,9 @@
     </Setting>
     <Setting Name="GerTime" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">1000</Value>
+    </Setting>
+    <Setting Name="SensorConfigPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">D:\Nikita\Обкаточный стенд ПРОМПК\Мост\KreativStend\Properties\SensorConfig.json</Value>
     </Setting>
   </Settings>
 </SettingsFile>

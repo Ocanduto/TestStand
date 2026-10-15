@@ -74,6 +74,8 @@
                 <DataGridCheckBoxColumn Header="A3" MinWidth="30" Binding="{Binding A3, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridCheckBoxColumn Header="A5" MinWidth="30" Binding="{Binding A5, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridTextColumn Header="Мотор" MinWidth="30" Binding="{Binding MotorSpeed, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridTextColumn Header="Пресет" MinWidth="30" Binding="{Binding Preset, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridTextColumn Header="Метка шага" MinWidth="30" Binding="{Binding StepMark, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

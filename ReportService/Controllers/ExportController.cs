@@ -108,11 +108,8 @@ public class ExportController(KreativDBContext context, IWebHostEnvironment envi
         var values = new Dictionary<string, string>
         {
             { nameof(item.Id).ToUpper(), item.Id.ToString() },
-            { nameof(item.TestType).ToUpper(), item.TestType },
+            { nameof(item.BridgeType).ToUpper(), item.BridgeType },
             { nameof(item.SerialNumberBridge).ToUpper(), item.SerialNumberBridge },
-            { nameof(item.SerialNumberHydro).ToUpper(), item.SerialNumberHydro },
-            { nameof(item.SerialNumberValve).ToUpper(), item.SerialNumberValve },
-            { nameof(item.BrandNumber).ToUpper(), item.BrandNumber },
             { nameof(item.Operator).ToUpper(), item.Operator },
             { "CREATEDATE.DATE", item.CreateDate.ToLocalTime().ToString("dd.MM.yyyy") },
             { "CREATEDATE.TIME", item.CreateDate.ToLocalTime().ToString("HH:mm:ss") }

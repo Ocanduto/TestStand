@@ -12,8 +12,8 @@ using ReportService.DataContexts;
 namespace ReportService.Migrations
 {
     [DbContext(typeof(KreativDBContext))]
-    [Migration("20241216132929_Texts")]
-    partial class Texts
+    [Migration("20261012112458_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,37 @@ namespace ReportService.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Data.SensorModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("RecordDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SensorName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("StepId")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StepId");
+
+                    b.ToTable("SensorsCollection");
+                });
 
             modelBuilder.Entity("Data.StepModel", b =>
                 {
@@ -39,6 +70,10 @@ namespace ReportService.Migrations
                     b.Property<string>("Info")
                         .HasColumnType("text");
 
+                    b.Property<string>("Mark")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool>("Result")
                         .HasColumnType("boolean");
 
@@ -49,6 +84,8 @@ namespace ReportService.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TestId");
 
                     b.ToTable("StepsCollection");
                 });
@@ -61,7 +98,7 @@ namespace ReportService.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("BrandNumber")
+                    b.Property<string>("BridgeType")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -73,18 +110,6 @@ namespace ReportService.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("SerialNumberBridge")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SerialNumberHydro")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SerialNumberValve")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TestType")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -108,6 +133,38 @@ namespace ReportService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TextsCollection");
+                });
+
+            modelBuilder.Entity("Data.SensorModel", b =>
+                {
+                    b.HasOne("Data.StepModel", "Step")
+                        .WithMany("Sensors")
+                        .HasForeignKey("StepId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Step");
+                });
+
+            modelBuilder.Entity("Data.StepModel", b =>
+                {
+                    b.HasOne("Data.TestModel", "Test")
+                        .WithMany("Steps")
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Test");
+                });
+
+            modelBuilder.Entity("Data.StepModel", b =>
+                {
+                    b.Navigation("Sensors");
+                });
+
+            modelBuilder.Entity("Data.TestModel", b =>
+                {
+                    b.Navigation("Steps");
                 });
 #pragma warning restore 612, 618
         }

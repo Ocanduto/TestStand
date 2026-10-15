@@ -16,13 +16,7 @@
 
     <c:ModalControl Header="{Binding TestType, StringFormat='Новый: {0}'}" DataContext="{Binding}" ContentVerticalAlignment="Center">
         <GroupBox Header="Шаг">
-            <ComboBox SelectedIndex="{Binding StepIndex}">
-                <ComboBoxItem Content="Шаг 1: Проверка движения Вперед/Назад"/>
-                <ComboBoxItem Content="Шаг 2: Проверка поворотных механизмов"/>
-                <ComboBoxItem Content="Шаг 3: Проверка герметичности (Высокое давление)"/>
-                <ComboBoxItem Content="Шаг 4: Откачка рабочей жидкости и продувка"/>
-                <ComboBoxItem Content=""/>
-                <ComboBoxItem Content="Шаг 5: Маркировка"/>
+            <ComboBox SelectedIndex="{Binding StartStepIndex}"  ItemsSource="{Binding LogicItems}" DisplayMemberPath="Operation">
             </ComboBox>
         </GroupBox>
 
@@ -34,14 +28,10 @@
                             <Setter Property="Padding" Value="0,10,0,2"/>
                         </Style>
                     </StackPanel.Resources>
+                    <Label Content="Тип моста" HorizontalContentAlignment="Center"/>
+                    <TextBox Text="{Binding BridgeType, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" TextAlignment="Center" FontWeight="Bold"/>
                     <Label Content="Серийный номер моста" HorizontalContentAlignment="Center"/>
-                    <TextBox Text="{Binding SerialNumberBridge, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" TextAlignment="Center" FontWeight="Bold"/>
-                    <Label Content="Серийный номер гидромоторов" HorizontalContentAlignment="Center"/>
-                    <TextBox Text="{Binding SerialNumberHydro, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" FontWeight="Bold"/>
-                    <Label Content="Серийный номер клапана" HorizontalContentAlignment="Center"/>
-                    <TextBox Text="{Binding SerialNumberValve, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" FontWeight="Bold"/>
-                    <Label Content="Номер личного клейма" HorizontalContentAlignment="Center"/>
-                    <TextBox Text="{Binding BrandNumber, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" FontWeight="Bold"/>
+                    <TextBox Text="{Binding SerialNumberBridge, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" FontWeight="Bold"/>
                 </StackPanel>
             </Border>
             <Border Padding="5" Margin="2" BorderThickness="1" BorderBrush="LightGray" CornerRadius="5">
@@ -78,7 +68,7 @@
 
         <c:ModalControl.Bottom>
             <UniformGrid Columns="1">
-                <Button Content="НАЧАТЬ ИСПЫТАНИЯ" Command="{Binding Success_Command}" Style="{StaticResource primary}"/>
+                <Button Content="НАЧАТЬ ИСПЫТАНИЯ" Command="{Binding Start_Command}" Style="{StaticResource primary}"/>
                 <Button Content="ЗАКРЫТЬ" Command="{Binding Exit_Command}" Style="{StaticResource normal}"/>
             </UniformGrid>
         </c:ModalControl.Bottom>

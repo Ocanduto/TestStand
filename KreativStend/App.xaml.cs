@@ -22,11 +22,11 @@ namespace KreativStend
         {
             _timer.Change(Timeout.Infinite, Timeout.Infinite);
 
-            //ProcessKeys.IsConnected = true;
-            if (!ProcessKeys.IsConnected)
-            {
-                ProcessKeys.OpenConnection.Execute(null);
-            }
+            ProcessKeys.IsConnected = true;
+            //if (!ProcessKeys.IsConnected)
+            //{
+            //    ProcessKeys.OpenConnection.Execute(null);
+            //}
 
             _timer.Change(0, 5000);
         }

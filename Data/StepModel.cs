@@ -7,8 +7,12 @@ public class StepModel
     public int TestId { get; set; }
     public int StepType { get; set; }
     public bool Result { get; set; }
-    public string? Info { get; set; }
-    public DateTime CreateDate { get; set; }
+	public string Name { get; set; }
+	public string? Info { get; set; }
+	public DateTime CreateDate { get; set; }
+	public TestModel Test { get; set; }
+	public string Mark { get; set; }
+	public ICollection<SensorModel> Sensors { get; set; } = new List<SensorModel>();
 }
 
 public class TextModel

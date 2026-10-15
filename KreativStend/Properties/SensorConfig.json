@@ -1,0 +1,178 @@
+{
+    "Groups": [
+        {
+            "Id": "grp_001",
+            "Name": "Вибрация",
+            "Description": "Датчики вибрации",
+            "SensorTags": [ "V_X_1", "V_Y_1", "V_Z_1", "V_M_1", "V_X_2", "V_Y_2", "V_Z_2", "V_M_2" ]
+        },
+        {
+            "Id": "grp_002",
+            "Name": "Температура вибрация",
+            "Description": "Датчики температуры на датчиках вибрации",
+            "SensorTags": [ "V_T_1", "V_T_2" ]
+        },
+        {
+            "Id": "grp_004",
+            "Name": "Герметичность дельта",
+            "Description": "Датчик давления герметичности дельта",
+            "SensorTags": [ "DD_Ger" ]
+        },
+        {
+            "Id": "grp_005",
+            "Name": "Герметичность максимум",
+            "Description": "Датчик давления герметичности максимум",
+            "SensorTags": [ "DD_Ger" ]
+        },
+        {
+            "Id": "grp_006",
+            "Name": "Герметичность минимум",
+            "Description": "Датчик давления герметичности минимум",
+            "SensorTags": [ "DD_Ger" ]
+        },
+        {
+            "Id": "grp_007",
+            "Name": "Температура обкаточного масла",
+            "Description": "Датчии температуры обкаточного масла",
+            "SensorTags": [ "TM_Work" ]
+        },
+        {
+            "Id": "grp_008",
+            "Name": "Счетчик обкаточного масла",
+            "Description": "Счетчик обкаточного масла",
+            "SensorTags": [ "CM1" ]
+        },
+        {
+            "Id": "grp_009",
+            "Name": "Датчик скорости",
+            "Description": "Датчик скорости",
+            "SensorTags": [ "Speed" ]
+        },
+        {
+            "Id": "grp_010",
+            "Name": "Датчик момента",
+            "Description": "Датчик момента",
+            "SensorTags": [ "Torque" ]
+        },
+        {
+            "Id": "grp_011",
+            "Name": "Температура чистого масла",
+            "Description": "Датчии температуры чистого масла",
+            "SensorTags": [ "TM_Clear" ]
+        },
+        {
+            "Id": "grp_012",
+            "Name": "Счетчик чистого масла",
+            "Description": "Счетчик чистого масла",
+            "SensorTags": [ "CM2" ]
+        }
+    ],
+
+    "Presets": [
+        {
+            "Id": "prs_001",
+            "Name": "Герметичность",
+            "Description": "Запись данных для проверки герметичности",
+            "Groups": [
+                {
+                    "GroupId": "grp_004",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Delta",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_005",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Maximum",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_006",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Minimum",
+                    "SaveHistory": false
+                }
+            ]
+        },
+        {
+            "Id": "prs_002",
+            "Name": "Заливка обкаточного масла",
+            "Description": "Запись данных при заливке обкаточного масла",
+            "Groups": [
+                {
+                    "GroupId": "grp_007",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Maximum",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_008",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Delta",
+                    "SaveHistory": false
+                }
+            ]
+        },
+        {
+            "Id": "prs_003",
+            "Name": "Обкатка моста",
+            "Description": "Запись данных при обкатке моста",
+            "Groups": [
+                {
+                    "GroupId": "grp_001",
+                    "Period": 0.1,
+                    "Delay": 3,
+                    "Aggregation": "Maximum",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_002",
+                    "Period": 0.1,
+                    "Delay": 0,
+                    "Aggregation": "Maximum",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_009",
+                    "Period": 0.1,
+                    "Delay": 0,
+                    "Aggregation": "Average",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_010",
+                    "Period": 0.1,
+                    "Delay": 3,
+                    "Aggregation": "Maximum",
+                    "SaveHistory": false
+                }
+            ]
+        },
+        {
+            "Id": "prs_004",
+            "Name": "Заливка чистого масла",
+            "Description": "Запись данных при заливке чистого масла",
+            "Groups": [
+                {
+                    "GroupId": "grp_011",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Maximum",
+                    "SaveHistory": false
+                },
+                {
+                    "GroupId": "grp_012",
+                    "Period": 0.5,
+                    "Delay": 0,
+                    "Aggregation": "Delta",
+                    "SaveHistory": false
+                }
+            ]
+        }
+    ]
+}

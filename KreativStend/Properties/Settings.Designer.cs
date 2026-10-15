@@ -70,7 +70,7 @@ namespace KreativStend.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Scripts")]
+        [global::System.Configuration.DefaultSettingValueAttribute("D:\\Nikita\\Обкаточный стенд ПРОМПК\\Мост\\Scripts")]
         public string ScriptsFolder {
             get {
                 return ((string)(this["ScriptsFolder"]));
@@ -187,6 +187,18 @@ namespace KreativStend.Properties {
             }
             set {
                 this["GerTime"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("D:\\Nikita\\Обкаточный стенд ПРОМПК\\Мост\\KreativStend\\Properties\\SensorConfig.json")]
+        public string SensorConfigPath {
+            get {
+                return ((string)(this["SensorConfigPath"]));
+            }
+            set {
+                this["SensorConfigPath"] = value;
             }
         }
     }

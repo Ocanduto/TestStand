@@ -1,4 +1,5 @@
 ﻿using KreativStend.Properties;
+using Newtonsoft.Json.Linq;
 using NModbus;
 using NModbus.Serial;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query.ExpressionTranslators.Internal;
@@ -18,43 +19,47 @@ using WPFHelper;
 
 namespace KreativStend.ViewModels
 {
-    public class TestKeysVM : WPFHelper.ViewModel
-    {
-        public TestKeysVM()
-        {
-            COMPORTS = ["COM8", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7"];
-            COMPORT = Properties.Settings.Default.COMPORT;
-            COMPORT2 = Properties.Settings.Default.COMPORT2;
-            IP_Address = Properties.Settings.Default.IP_Address;
-            Port = Properties.Settings.Default.Port;
-            Ten = Properties.Settings.Default.Tens_On;
-            MotorSpeed = Properties.Settings.Default.MotorSpeed;
+	public class TestKeysVM : WPFHelper.ViewModel
+	{
+		public TestKeysVM()
+		{
+			COMPORTS = ["COM8", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7"];
+			COMPORT = Properties.Settings.Default.COMPORT;
+			COMPORT2 = Properties.Settings.Default.COMPORT2;
+			IP_Address = Properties.Settings.Default.IP_Address;
+			Port = Properties.Settings.Default.Port;
+			Ten = Properties.Settings.Default.Tens_On;
+			MotorSpeed = Properties.Settings.Default.MotorSpeed;
+
+			Sensors = new Dictionary<string, double>();
+
+			timer = new Timer(On_Tick);
+			timer.Change(0, 500);
 
             Check = 0;
             MotorButtonText = "Старт";
-            timer = new Timer(On_Tick);
-            timer.Change(0, 500);
 
             Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
         }
 
-        private SerialPort port;
-        private SerialPort port2;
-        private ModbusFactory modbusFactory;
-        private IModbusMaster master;
-        private Timer timer;
-        private TcpClient tcpClient;
+		private SerialPort port;
+		private SerialPort port2;
+		private ModbusFactory modbusFactory;
+		private IModbusMaster master;
+		private Timer timer;
+		private TcpClient tcpClient;
 
-        public ObservableCollection<string> COMPORTS { get; set; }
+		public ObservableCollection<string> COMPORTS { get; set; }
 
+		public Dictionary<string, double> Sensors { get => Get<Dictionary<string, double>>(); set { Set(value); } }
+
+		public bool IsConnected { get => Get<bool>(); set { Set(value); } }
+		public string COMPORT { get => Get<string>(); set => Set(value); }
+		public string COMPORT2 { get => Get<string>(); set => Set(value); }
+		public string IP_Address { get => Get<string>(); set => Set(value); }
+		public int Port { get => Get<int>(); set => Set(value); }
+		public int MotorSpeed { get => Get<int>(); set => Set(value); }
         public long Check { get => Get<long>(); set { Set(value); } }
-
-        public bool IsConnected { get => Get<bool>(); set { Set(value); } }
-        public string COMPORT { get => Get<string>(); set => Set(value); }
-        public string COMPORT2 { get => Get<string>(); set => Set(value); }
-        public string IP_Address { get => Get<string>(); set => Set(value); }
-        public int Port { get => Get<int>(); set => Set(value); }
-        public int MotorSpeed { get => Get<int>(); set => Set(value); }
 
         public bool UM1 { get => Get<bool>(); set => Set(value); }
         public bool UM2 { get => Get<bool>(); set => Set(value); }
@@ -87,37 +92,39 @@ namespace KreativStend.ViewModels
 
         public double TM_Clear { get => Get<double>(); set => Set(value); }
         public ushort[] Counters { get => Get<ushort[]>(); set => Set(value); }
-        //public string Torque { get => Get<string>(); set => Set(value); }
-        //public string Speed { get => Get<string>(); set => Set(value); }
 
-        public bool Ten { get => Get<bool>(); set => Set(value); }
-        public bool M1 { get => Get<bool>(); set => Set(value); }
-        public bool M2 { get => Get<bool>(); set => Set(value); }
-        public bool M3 { get => Get<bool>(); set => Set(value); }
-        public bool K1_M1 { get => Get<bool>(); set => Set(value); }
-        public bool K2_M1 { get => Get<bool>(); set => Set(value); }
-        public bool K1_M2 { get => Get<bool>(); set => Set(value); }
-        public bool K2_M2 { get => Get<bool>(); set => Set(value); }
-        public bool K1_M3 { get => Get<bool>(); set => Set(value); }
-        public bool K2_M3 { get => Get<bool>(); set => Set(value); }
-        public bool Q_1_Work { get => Get<bool>(); set => Set(value); }
-        public double V_X_1 { get => Get<double>(); set => Set(value); }
-        public double V_Y_1 { get => Get<double>(); set => Set(value); }
-        public double V_Z_1 { get => Get<double>(); set => Set(value); }
-        public double V_M_1 { get => Get<double>(); set => Set(value); }
-        public double V_T_1 { get => Get<double>(); set => Set(value); }
+		public double V_X_1 { get => Get<double>(); set => Set(value); }
+		public double V_Y_1 { get => Get<double>(); set => Set(value); }
+		public double V_Z_1 { get => Get<double>(); set => Set(value); }
+		public double V_M_1 { get => Get<double>(); set => Set(value); }
+		public double V_T_1 { get => Get<double>(); set => Set(value); }
+		public double V_X_2 { get => Get<double>(); set => Set(value); }
+		public double V_Y_2 { get => Get<double>(); set => Set(value); }
+		public double V_Z_2 { get => Get<double>(); set => Set(value); }
+		public double V_M_2 { get => Get<double>(); set => Set(value); }
+		public double V_T_2 { get => Get<double>(); set => Set(value); }
 
-        public double V_X_2 { get => Get<double>(); set => Set(value); }
-        public double V_Y_2 { get => Get<double>(); set => Set(value); }
-        public double V_Z_2 { get => Get<double>(); set => Set(value); }
-        public double V_M_2 { get => Get<double>(); set => Set(value); }
-        public double V_T_2 { get => Get<double>(); set => Set(value); }
-        public bool Q_2_Work { get => Get<bool>(); set => Set(value); }
+
+		public double Torque { get => Get<double>(); set => Set(value); }
+		public double Speed { get => Get<double>(); set => Set(value); }
+
+		public bool Ten { get => Get<bool>(); set => Set(value); }
+		public bool M1 { get => Get<bool>(); set => Set(value); }
+		public bool M2 { get => Get<bool>(); set => Set(value); }
+		public bool M3 { get => Get<bool>(); set => Set(value); }
+		public bool K1_M1 { get => Get<bool>(); set => Set(value); }
+		public bool K2_M1 { get => Get<bool>(); set => Set(value); }
+		public bool K1_M2 { get => Get<bool>(); set => Set(value); }
+		public bool K2_M2 { get => Get<bool>(); set => Set(value); }
+		public bool K1_M3 { get => Get<bool>(); set => Set(value); }
+		public bool K2_M3 { get => Get<bool>(); set => Set(value); }
+		public bool Q_1_Work { get => Get<bool>(); set => Set(value); }
+		public bool Q_2_Work { get => Get<bool>(); set => Set(value); }
 		public bool Q_3_Work { get => Get<bool>(); set => Set(value); }
 		public bool Q_1_Clear { get => Get<bool>(); set => Set(value); }
 		public bool Q_2_Clear { get => Get<bool>(); set => Set(value); }
 		public bool Q_3_Clear { get => Get<bool>(); set => Set(value); }
-        public bool Brake_L1 { get => Get<bool>(); set => Set(value); }
+		public bool Brake_L1 { get => Get<bool>(); set => Set(value); }
 		public bool Brake_L2 { get => Get<bool>(); set => Set(value); }
 		public bool Brake_R1 { get => Get<bool>(); set => Set(value); }
 		public bool Brake_R2 { get => Get<bool>(); set => Set(value); }
@@ -125,24 +132,24 @@ namespace KreativStend.ViewModels
 		public bool Block_Dif_24 { get => Get<bool>(); set => Set(value); }
 		public bool Ger_On { get => Get<bool>(); set => Set(value); }
 		public bool Ger_Off { get => Get<bool>(); set => Set(value); }
-        public bool Motor_Case_L_Open { get => Get<bool>(); set => Set(value); }
+		public bool Motor_Case_L_Open { get => Get<bool>(); set => Set(value); }
 		public bool Motor_Case_L_Close { get => Get<bool>(); set => Set(value); }
 		public bool Motor_Case_R_Open { get => Get<bool>(); set => Set(value); }
 		public bool Motor_Case_R_Close { get => Get<bool>(); set => Set(value); }
-        public bool MotorTest { get => Get<bool>(); set => Set(value); }
-        public bool MotorTest2 { get => Get<bool>(); set => Set(value); }
-        public bool A3 { get => Get<bool>(); set => Set(value); }
-        public bool A5 { get => Get<bool>(); set => Set(value); }
+		public bool MotorTest { get => Get<bool>(); set => Set(value); }
+		public bool MotorTest2 { get => Get<bool>(); set => Set(value); }
+		public bool A3 { get => Get<bool>(); set => Set(value); }
+		public bool A5 { get => Get<bool>(); set => Set(value); }
 
 
-        bool SaveStart = false;
-        bool SaveStop = false;
-        //bool GoStart = false;
-        int SaveSet_Speed = 0;
-        bool GoStart = true;
-        public bool Set_Speed { get => Get<bool>(); set => Set(value); }
-        public bool StartMotor { get => Get<bool>(); set => Set(value); }
-        public bool StopMotor { get => Get<bool>(); set => Set(value); }
+		bool SaveStart = false;
+		bool SaveStop = false;
+		//bool GoStart = false;
+		int SaveSet_Speed = 0;
+		bool GoStart = true;
+		public bool Set_Speed { get => Get<bool>(); set => Set(value); }
+		public bool StartMotor { get => Get<bool>(); set => Set(value); }
+		public bool StopMotor { get => Get<bool>(); set => Set(value); }
 
         public bool ERROR { get => Get<bool>(); set => Set(value); }
 
@@ -243,8 +250,8 @@ namespace KreativStend.ViewModels
         private WPFHelper.Commands.ViewModelCommandHandler _OpenConnection = new();
         private WPFHelper.Commands.ViewModelCommandHandler _CloseConnection = new();
 
-        public ICommand OpenConnection => _OpenConnection.Get(On_OpenConnection, () => !string.IsNullOrWhiteSpace(COMPORT) && !IsConnected);
-        public ICommand CloseConnection => _CloseConnection.Get(On_CloseConnection, () => IsConnected);
+		public ICommand OpenConnection => _OpenConnection.Get(On_OpenConnection, () => !string.IsNullOrWhiteSpace(COMPORT) && !IsConnected);
+		public ICommand CloseConnection => _CloseConnection.Get(On_CloseConnection, () => IsConnected);
 
         private WPFHelper.Commands.ViewModelCommandHandler _ApplyMotorSpeed = new();
 
@@ -258,85 +265,85 @@ namespace KreativStend.ViewModels
             timer.Change(Timeout.Infinite, Timeout.Infinite);
             await CheckErrors();
 
-            //       if (port != null && port.IsOpen && false)
-            //       {
-            //           byte[] buffer = new byte[1024];
+			//       if (port != null && port.IsOpen && false)
+			//       {
+			//           byte[] buffer = new byte[1024];
 
-            //           // Отправка команды
-            //           byte[] command = { 0x05, 0x01, 0x00, 0x00, 0x00, 0x00, 0x06, 0xAA }; // Пример Modbus команды
-            //           port.Write(command, 0, command.Length);
+			//           // Отправка команды
+			//           byte[] command = { 0x05, 0x01, 0x00, 0x00, 0x00, 0x00, 0x06, 0xAA }; // Пример Modbus команды
+			//           port.Write(command, 0, command.Length);
 
-            //           int count = port.Read(buffer, 0, buffer.Length);
-            //           if (count == 19)
-            //           {
-            //               // Чтение ответа
-            //               byte[] TorqueBuffer = new byte[7];
-            //               Array.Copy(buffer, 2, TorqueBuffer, 0, 7);
-            //               byte[] SpeedBuffer = new byte[6];
-            //               Array.Copy(buffer, 9, SpeedBuffer, 0, 6);
+			//           int count = port.Read(buffer, 0, buffer.Length);
+			//           if (count == 19)
+			//           {
+			//               // Чтение ответа
+			//               byte[] TorqueBuffer = new byte[7];
+			//               Array.Copy(buffer, 2, TorqueBuffer, 0, 7);
+			//               byte[] SpeedBuffer = new byte[6];
+			//               Array.Copy(buffer, 9, SpeedBuffer, 0, 6);
 
-            //               Torque = Encoding.ASCII.GetString(TorqueBuffer);
-            //               Speed = Encoding.ASCII.GetString(SpeedBuffer);
-            //           }
-            //       }
+			//               Torque = Encoding.ASCII.GetString(TorqueBuffer);
+			//               Speed = Encoding.ASCII.GetString(SpeedBuffer);
+			//           }
+			//       }
 
-            //       if (port2 != null && port2.IsOpen)
-            //       {
-            //           var SaveStart = false;
-            //           var SaveStop = false;
-            //           if (!Start & SaveStart)
-            //           {
-            //               SaveStart = false;
-            //           }
-            //           if (!Stop & SaveStop)
-            //           {
-            //               SaveStop = false;
-            //           }
-            //           if (Set_Speed)
-            //           {
-            //               Set_Speed = false;
-            //               // Отправка команды
-            //               //byte[] command = { 0x01, 0x06, 0x02, 0x0D, 0x05, 0xDC, 0xAA, 0xCB }; // 01 06 02 0D 02 BC 19 60
-            //               //byte[] command = { 0x01, 0x06, 0x00, 0x02, 0x00, 0x1E, 0xA8, 0x02 };
-
-
-            //               byte[] command = BuildSpeedCommand(MotorSpeed);
+			//       if (port2 != null && port2.IsOpen)
+			//       {
+			//           var SaveStart = false;
+			//           var SaveStop = false;
+			//           if (!Start & SaveStart)
+			//           {
+			//               SaveStart = false;
+			//           }
+			//           if (!Stop & SaveStop)
+			//           {
+			//               SaveStop = false;
+			//           }
+			//           if (Set_Speed)
+			//           {
+			//               Set_Speed = false;
+			//               // Отправка команды
+			//               //byte[] command = { 0x01, 0x06, 0x02, 0x0D, 0x05, 0xDC, 0xAA, 0xCB }; // 01 06 02 0D 02 BC 19 60
+			//               //byte[] command = { 0x01, 0x06, 0x00, 0x02, 0x00, 0x1E, 0xA8, 0x02 };
 
 
-            //               //port2.DiscardInBuffer();
-            ////byte[] command = { 0x01, 0x03, 0x00, 0x02, 0x00, 0x01, 0x25, 0xCA };
+			//               byte[] command = BuildSpeedCommand(MotorSpeed);
 
 
-            //               port2.Write(command, 0, command.Length);
+			//               //port2.DiscardInBuffer();
+			////byte[] command = { 0x01, 0x03, 0x00, 0x02, 0x00, 0x01, 0x25, 0xCA };
 
 
-            //               //System.Threading.Thread.Sleep(100);
+			//               port2.Write(command, 0, command.Length);
 
-            //               //byte[] response = new byte[5];
-            //               //int bytesRead = port2.Read(response, 0, 5);
 
-            //               //if (bytesRead == 5 && response[0] == 1 && response[1] == 0x3)
-            //               //{
-            //                   //ushort statusWord = (ushort)((response[3] << 8) | response[4]);
-            //                   //    Console.WriteLine($"Status Word: 0x{statusWord:X4} ({statusWord})");
-            //               //}
+			//               //System.Threading.Thread.Sleep(100);
 
-            //           }
-            //           if (Stop & !SaveStop)
-            //           {
-            //               // Отправка команды
-            //               byte[] command = { 0x01, 0x06, 0x06, 0x05, 0x08, 0x81, 0x5E, 0xE3 }; //01 06 06 05 08 81 5E E3
-            //               port2.Write(command, 0, command.Length);
-            //               SaveStop = true;
-            //           }
-            //           else if (Start & !SaveStart)
-            //           {
-            //               // Отправка команды
-            //               byte[] command = { 0x01, 0x06, 0x06, 0x05, 0x08, 0x82, 0x1E, 0xE2 }; //01 06 06 05 08 82 1E E2
-            //               port2.Write(command, 0, command.Length);
-            //               SaveStart = true;
-            //           }
-            //       }
+			//               //byte[] response = new byte[5];
+			//               //int bytesRead = port2.Read(response, 0, 5);
+
+			//               //if (bytesRead == 5 && response[0] == 1 && response[1] == 0x3)
+			//               //{
+			//                   //ushort statusWord = (ushort)((response[3] << 8) | response[4]);
+			//                   //    Console.WriteLine($"Status Word: 0x{statusWord:X4} ({statusWord})");
+			//               //}
+
+			//           }
+			//           if (Stop & !SaveStop)
+			//           {
+			//               // Отправка команды
+			//               byte[] command = { 0x01, 0x06, 0x06, 0x05, 0x08, 0x81, 0x5E, 0xE3 }; //01 06 06 05 08 81 5E E3
+			//               port2.Write(command, 0, command.Length);
+			//               SaveStop = true;
+			//           }
+			//           else if (Start & !SaveStart)
+			//           {
+			//               // Отправка команды
+			//               byte[] command = { 0x01, 0x06, 0x06, 0x05, 0x08, 0x82, 0x1E, 0xE2 }; //01 06 06 05 08 82 1E E2
+			//               port2.Write(command, 0, command.Length);
+			//               SaveStart = true;
+			//           }
+			//       }
 
             if (port2 != null && port2.IsOpen)
             {
@@ -386,37 +393,20 @@ namespace KreativStend.ViewModels
                 }
             }
 
-            timer.Change(Timeout.Infinite, Timeout.Infinite);
+			timer.Change(Timeout.Infinite, Timeout.Infinite);
 
-            try
-            {
-                if (!ErrorManager.ShouldStopTest)
-                {
-                    HandleServiceButtons();
-                }
-                else
-                {
-                    Pump1_Work = false;
-                    Pump2_Work = false;
-                    Pump3_Work = false;
-                    Pump1_Clear = false;
-                    Pump2_Clear = false;
-                    Pump3_Clear = false;
-                    Pump1_Out = false;
-                    Pump2_Out = false;
-                    Pump3_Out = false;
-                }
+			try
+			{
+				if (!IsConnected || master == null)
+				{
+					UM1 = false;
+					UM2 = false;
+					L1 = false;
+					R1 = false;
+					L2 = false;
+					R2 = false;
 
-                if (!IsConnected || master == null)
-                {
-                    UM1 = false;
-                    UM2 = false;
-                    L1 = false;
-                    R1 = false;
-                    L2 = false;
-                    R2 = false;
-
-                    ERROR = false;
+					ERROR = false;
 
 					Case_L_Open = false;
 					Case_L_Close = false;
@@ -431,61 +421,61 @@ namespace KreativStend.ViewModels
 					Brake_R2_On = false;
 					Brake_R2_Off = false;
 
-					return;
-                }
+					//return;
+				}
 
-                var data = await master.ReadCoilsAsync(1, 0, 19);
-                //var data = (await master.ReadHoldingRegistersAsync(16, 512, 10)).ToBoolArray();
+				//var data = await master.ReadCoilsAsync(1, 0, 19);
+				//var data = (await master.ReadHoldingRegistersAsync(16, 512, 10)).ToBoolArray();
 
-                UM1 = data[0];
-                UM2 = data[1];
-                L1 = data[2];
-                R1 = data[3];
-                L2 = data[4];
-                R2 = data[5];
-                ERROR = data[6];
-				Case_L_Open = data[7];
-				Case_L_Close = data[8];
-				Case_R_Open = data[9];
-				Case_R_Close = data[10];
-				Brake_L1_On = data[11];
-				Brake_L1_Off = data[12];
-				Brake_L2_On = data[13];
-				Brake_L2_Off = data[14];
-				Brake_R1_On = data[15];
-				Brake_R1_Off = data[16];
-				Brake_R2_On = data[17];
-				Brake_R2_Off = data[18];
-
-
-				Inputs = data;
-
-                //ERROR = data[4];
-
-                //DD1_1 = data[5];
-                //DD1_2 = data[6];
-                //DD2_1 = data[7];
-                //DD2_2 = data[8];
-                //TM1 = data[9];
-
-                //var data_float = await master.ReadHoldingRegistersAsync(1, 24, 5);
+				//UM1 = data[0];
+				//UM2 = data[1];
+				//L1 = data[2];
+				//R1 = data[3];
+				//L2 = data[4];
+				//R2 = data[5];
+				//ERROR = data[6];
+				//Case_L_Open = data[7];
+				//Case_L_Close = data[8];
+				//Case_R_Open = data[9];
+				//Case_R_Close = data[10];
+				//Brake_L1_On = data[11];
+				//Brake_L1_Off = data[12];
+				//Brake_L2_On = data[13];
+				//Brake_L2_Off = data[14];
+				//Brake_R1_On = data[15];
+				//Brake_R1_Off = data[16];
+				//Brake_R2_On = data[17];
+				//Brake_R2_Off = data[18];
 
 
-                if (ERROR)
-                {
-                    Ten = false;
+				//Inputs = data;
 
-                    M1 = false;
-                    M2 = false;
-                    M3 = false;
+				//ERROR = data[4];
 
-                    K1_M1 = false;
-                    K2_M1 = false;
-                    K1_M2 = false;
-                    K2_M2 = false;
-                    K1_M3 = false;
-                    K2_M3 = false;
-                    Q_1_Work = false;
+				//DD1_1 = data[5];
+				//DD1_2 = data[6];
+				//DD2_1 = data[7];
+				//DD2_2 = data[8];
+				//TM_Work = data[9];
+
+				//var data_float = await master.ReadHoldingRegistersAsync(1, 24, 5);
+
+
+				if (ERROR)
+				{
+					Ten = false;
+
+					M1 = false;
+					M2 = false;
+					M3 = false;
+
+					K1_M1 = false;
+					K2_M1 = false;
+					K1_M2 = false;
+					K2_M2 = false;
+					K1_M3 = false;
+					K2_M3 = false;
+					Q_1_Work = false;
 					Q_2_Work = false;
 					Q_3_Work = false;
 					Q_1_Clear = false;
@@ -498,31 +488,31 @@ namespace KreativStend.ViewModels
 					Block_Dif_12 = false;
 					Block_Dif_24 = false;
 					Ger_On = false;
-                    Ger_Off = false;
-                    Motor_Case_L_Open = false;
+					Ger_Off = false;
+					Motor_Case_L_Open = false;
 					Motor_Case_L_Close = false;
 					Motor_Case_R_Open = false;
 					Motor_Case_R_Close = false;
-                    MotorTest = false;
-                    MotorTest2 = false;
-                }
+					MotorTest = false;
+					MotorTest2 = false;
+				}
 
-                if(Case_L_Close)
-                {
-                    Motor_Case_L_Close = false;
-                }
-                if (Case_R_Close)
-                {
-                    Motor_Case_R_Close = false;
-                }
-                if (Case_L_Open)
-                {
-                    Motor_Case_L_Open = false;
-                }
-                if (Case_R_Open)
-                {
-                    Motor_Case_R_Open = false;
-                }
+				if (Case_L_Close)
+				{
+					Motor_Case_L_Close = false;
+				}
+				if (Case_R_Close)
+				{
+					Motor_Case_R_Close = false;
+				}
+				if (Case_L_Open)
+				{
+					Motor_Case_L_Open = false;
+				}
+				if (Case_R_Open)
+				{
+					Motor_Case_R_Open = false;
+				}
 
                 if (ErrorManager.ShouldStopTest)
                 {
@@ -565,15 +555,15 @@ namespace KreativStend.ViewModels
 					Block_Dif_12,
 					Block_Dif_24,
 					Ger_On,
-                    Ger_Off,
+					Ger_Off,
 					Motor_Case_L_Open,
 					Motor_Case_L_Close,
 					Motor_Case_R_Open,
 					Motor_Case_R_Close,
-                    MotorTest,
-                    MotorTest2,
-                    A3,
-                    A5
+					MotorTest,
+					MotorTest2,
+					A3,
+					A5
 					//(bool)(Ten ? 1 : 0),
                     //(bool)(M1 ? 1u : 0),
                     //(bool)(M2 ? 1u : 0),
@@ -595,14 +585,14 @@ namespace KreativStend.ViewModels
                     //(ushort)(Y11 ? 1 : 0)
                 };
 
-                await master.WriteMultipleCoilsAsync(1, 32, sendData);
+				//await master.WriteMultipleCoilsAsync(1, 32, sendData);
 
-                var data_float = await master.ReadHoldingRegistersAsync(1, 4, 12);
-                Counters = await master.ReadHoldingRegistersAsync(1, 16, 2);
+				//var data_float = await master.ReadHoldingRegistersAsync(1, 4, 12);
+				//Counters = await master.ReadHoldingRegistersAsync(1, 16, 2);
 
                 for(int i = 0; i < 2; i++)
                 {
-                    CounterToLiter[0] = Counters[0] / Coefs[0].Coef;
+                    CounterToLiter[i] = Counters[i] / Coefs.FirstOrDefault(q => q.Index == i).Coef;
                 }
 
                 if (Counters != null && Counters.Length >= 2)
@@ -626,38 +616,77 @@ namespace KreativStend.ViewModels
                         702);
                 }
 
-                float[] Floats_From_PLC = new float[6];
+                float[] Floats_From_PLC = new float[17];
 
-                for (int i = 0; i < data_float.Length / 2; i++)
-                {
-                    byte[] floatVals1 = BitConverter.GetBytes(data_float[2 * i]);
-                    byte[] floatVals2 = BitConverter.GetBytes(data_float[2 * i + 1]);
+				//for (int i = 0; i < data_float.Length / 2; i++)
+				//{
+				//    byte[] floatVals1 = BitConverter.GetBytes(data_float[2 * i]);
+				//    byte[] floatVals2 = BitConverter.GetBytes(data_float[2 * i + 1]);
 
-                    var floatVals = floatVals1.Concat(floatVals2).ToArray();
+				//    var floatVals = floatVals1.Concat(floatVals2).ToArray();
 
-                    float f = BitConverter.ToSingle(floatVals, 0);
+				//    float f = BitConverter.ToSingle(floatVals, 0);
 
-                    Floats_From_PLC[i] = f;
-                }
+				//    Floats_From_PLC[i] = f;
+				//}
 
-                DD1_1 = Floats_From_PLC[0];
-                DD1_2 = Floats_From_PLC[1];
-                DD2_1 = Floats_From_PLC[2];
-                DD2_2 = Floats_From_PLC[3];
-                TM_Work = Floats_From_PLC[4];
-                DD_Ger = Floats_From_PLC[5];
-            }
-            catch (Exception e)
-            {
-                IsConnected = false;
-                MessageBox.Show(e.ToString());
-            } 
-            finally
-            {
-                timer.Change(100, Timeout.Infinite);
-            }
-            Warning = false;
-        }
+				DD1_1 = Floats_From_PLC[0];
+				DD1_2 = Floats_From_PLC[1];
+				DD2_1 = Floats_From_PLC[2];
+				DD2_2 = Floats_From_PLC[3];
+				TM_Work = Floats_From_PLC[4];
+				DD_Ger = Floats_From_PLC[5];
+				TM_Clear = Floats_From_PLC[6];
+				V_X_1 = Floats_From_PLC[7];
+				V_Y_1 = Floats_From_PLC[8];
+				V_Z_1 = Floats_From_PLC[9];
+				V_M_1 = Floats_From_PLC[10];
+				V_T_1 = Floats_From_PLC[11];
+				V_X_2 = Floats_From_PLC[12];
+				V_Y_2 = Floats_From_PLC[13];
+				V_Z_2 = Floats_From_PLC[14];
+				V_M_2 = Floats_From_PLC[15];
+				V_T_2 = Floats_From_PLC[16];
+
+				Sensors["DD1_1"] = DD1_1;
+				Sensors["DD1_2"] = DD1_2;
+				Sensors["DD2_1"] = DD2_1;
+				Sensors["DD2_2"] = DD2_2;
+
+				Sensors["TM_Work"] = TM_Work;
+				Sensors["DD_Ger"] = DD_Ger;
+				Sensors["TM_Clear"] = TM_Clear;
+
+				Sensors["V_X_1"] = V_X_1;
+				Sensors["V_Y_1"] = V_Y_1;
+				Sensors["V_Z_1"] = V_Z_1;
+				Sensors["V_M_1"] = V_M_1;
+				Sensors["V_T_1"] = V_T_1;
+
+				Sensors["V_X_2"] = V_X_2;
+				Sensors["V_Y_2"] = V_Y_2;
+				Sensors["V_Z_2"] = V_Z_2;
+				Sensors["V_M_2"] = V_M_2;
+				Sensors["V_T_2"] = V_T_2;
+
+				Sensors["Speed"] = Speed;
+				Sensors["Torque"] = Torque;
+
+
+				Sensors["CM1"] = Math.Round(Counters[0] / Coefs.FirstOrDefault(q => q.Index == 0).Coef, 2);
+				Sensors["CM2"] = Math.Round(Counters[1] / Coefs.FirstOrDefault(q => q.Index == 1).Coef, 2);
+			}
+			catch (Exception e)
+			{
+				IsConnected = false;
+				MessageBox.Show(e.ToString());
+			}
+			finally
+			{
+				timer.Change(100, Timeout.Infinite);
+			}
+			Warning = false;
+		}
 
         private void On_ApplyMotorSpeed()
         {
@@ -704,15 +733,15 @@ namespace KreativStend.ViewModels
                 //MessageBox.Show($"не удалось подключиться {Properties.Settings.Default.IP_Address}");
                 //MessageBox.Show(e.ToString());
 
-                //if (port != null)
-                //{
-                //	port.Close();
-                //	port.Dispose();
-                //}
-                //port = null;
-                master = null;
-                modbusFactory = null;
-            }
+				//if (port != null)
+				//{
+				//	port.Close();
+				//	port.Dispose();
+				//}
+				//port = null;
+				master = null;
+				modbusFactory = null;
+			}
 
             try
             {
@@ -790,94 +819,94 @@ namespace KreativStend.ViewModels
                 port2 = null;
             }
 
-            if (!IsConnected) return;
+			if (!IsConnected) return;
 
-            try
-            {
-                if (master == null)
-                {
-                    master = modbusFactory.CreateMaster(tcpClient);
-                }
-            }
-            catch (Exception e)
-            {
-                //port?.Close();
-                //port?.Dispose();
-                IsConnected = false;
-                master = null;
-                modbusFactory = null;
-                //port = null;
+			try
+			{
+				if (master == null)
+				{
+					master = modbusFactory.CreateMaster(tcpClient);
+				}
+			}
+			catch (Exception e)
+			{
+				//port?.Close();
+				//port?.Dispose();
+				IsConnected = false;
+				master = null;
+				modbusFactory = null;
+				//port = null;
 
-                RaisePropertyChanged(nameof(OpenConnection));
-                RaisePropertyChanged(nameof(CloseConnection));
+				RaisePropertyChanged(nameof(OpenConnection));
+				RaisePropertyChanged(nameof(CloseConnection));
 
-                MessageBox.Show(e.ToString());
-            }
-        }
-        private void On_CloseConnection()
-        {
-            port?.Close();
-            port?.Dispose();
-            IsConnected = false;
-            master = null;
-            modbusFactory = null;
-            port = null;
+				MessageBox.Show(e.ToString());
+			}
+		}
+		private void On_CloseConnection()
+		{
+			port?.Close();
+			port?.Dispose();
+			IsConnected = false;
+			master = null;
+			modbusFactory = null;
+			port = null;
 
-            RaisePropertyChanged(nameof(OpenConnection));
-            RaisePropertyChanged(nameof(CloseConnection));
-        }
+			RaisePropertyChanged(nameof(OpenConnection));
+			RaisePropertyChanged(nameof(CloseConnection));
+		}
 
-        private static byte[] BuildSpeedCommand(int MotorSpeed)
-        {
-            byte device = 0x01;
-            byte function = 0x06;
-            ushort register = 0x0002;
+		private static byte[] BuildSpeedCommand(int MotorSpeed)
+		{
+			byte device = 0x01;
+			byte function = 0x06;
+			ushort register = 0x0002;
 
-            byte[] frame = new byte[6];
-            byte[] finalframe = new byte[8];
+			byte[] frame = new byte[6];
+			byte[] finalframe = new byte[8];
 
-            frame[0] = device;
-            frame[1] = function;
-            frame[2] = (byte)(register >> 8);
-            frame[3] = (byte)(register & 0xFF);
-            frame[4] = (byte)(MotorSpeed >> 8);
-            frame[5] = (byte)(MotorSpeed & 0xFF);
+			frame[0] = device;
+			frame[1] = function;
+			frame[2] = (byte)(register >> 8);
+			frame[3] = (byte)(register & 0xFF);
+			frame[4] = (byte)(MotorSpeed >> 8);
+			frame[5] = (byte)(MotorSpeed & 0xFF);
 
-            Array.Copy(frame, 0, finalframe, 0, 6);
+			Array.Copy(frame, 0, finalframe, 0, 6);
 
-            ushort crc = ModbusCRC(frame);
+			ushort crc = ModbusCRC(frame);
 
-            byte crcLo = (byte)(crc & 0xFF);
-            byte crcHi = (byte)(crc >> 8);
+			byte crcLo = (byte)(crc & 0xFF);
+			byte crcHi = (byte)(crc >> 8);
 
-            finalframe[6] = crcLo;
-            finalframe[7] = crcHi;
-            return finalframe;
-        }
+			finalframe[6] = crcLo;
+			finalframe[7] = crcHi;
+			return finalframe;
+		}
 
-        public async Task ResetMarkirator()
-        {
-            var Check = false;
-            while (!Check)
-            {
+		public async Task ResetMarkirator()
+		{
+			var Check = false;
+			while (!Check)
+			{
 
-                try
-                {
+				try
+				{
 
-                    port2.Write($"{ASCIIChars.CR}");
-                    await Task.Delay(20);
-                    port2.Write($"{ASCIIChars.FF}");
-                    await Task.Delay(20);
-                    Check = true;
-                }
-                catch
-                {
-                    await Task.Delay(1000);
-                    Check = false;
-                }
-            }
+					port2.Write($"{ASCIIChars.CR}");
+					await Task.Delay(20);
+					port2.Write($"{ASCIIChars.FF}");
+					await Task.Delay(20);
+					Check = true;
+				}
+				catch
+				{
+					await Task.Delay(1000);
+					Check = false;
+				}
+			}
 
-        }
+		}
 
 
         public async Task CheckErrors()
@@ -1150,7 +1179,7 @@ namespace KreativStend.ViewModels
         }
 
 
-        static ushort ModbusCRC(byte[] data)
+		static ushort ModbusCRC(byte[] data)
 		{
 			ushort crc = 0xFFFF;
 

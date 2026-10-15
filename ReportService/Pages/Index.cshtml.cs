@@ -34,12 +34,9 @@ public class IndexModel(ILogger<IndexModel> logger, KreativDBContext context) : 
             {
                 Id = q.Id,
                 CreateDate = q.CreateDate,
-                BrandNumber = q.BrandNumber,
                 SerialNumberBridge = q.SerialNumberBridge,
-                SerialNumberHydro = q.SerialNumberHydro,
-                SerialNumberValve = q.SerialNumberValve,
                 Operator = q.Operator,
-                TestType = q.TestType,
+                BridgeType = q.BridgeType,
                 State = 0
             })
             .ToListAsync();
@@ -90,11 +87,8 @@ public class IndexModel(ILogger<IndexModel> logger, KreativDBContext context) : 
 public class TestViewModel
 {
     public int Id { get; set; }
-    public string TestType { get; set; }
     public string SerialNumberBridge { get; set; }
-    public string SerialNumberHydro { get; set; }
-    public string SerialNumberValve { get; set; }
-    public string BrandNumber { get; set; }
+    public string BridgeType { get; set; }
     public string Operator { get; set; }
     public int State { get; set; }
     public DateTime CreateDate { get; set; }

@@ -31,8 +31,15 @@ namespace KreativStend.ViewModels
 
 			Variables = new double[10];
 
+			_stepManager = new StepExecutionManager();
+
+			_stepManager.OnGroupCompleted += OnGroupCompleted;
+			_stepManager.OnDataUpdated += OnDataUpdated;
+
             App.ProcessKeys.IsTestRunning = true;
         }
+
+		private StepExecutionManager _stepManager;
 
 		private Timer _timer;
 		private int testId;
@@ -46,18 +53,19 @@ namespace KreativStend.ViewModels
 
 		public bool IsConnected { get => Get<bool>(); set { Set(value); } }
 
+		bool Recording = false;
 		public int StepIndex { get => Get<int>(); set => Set(value); }
+		public int StartStepIndex { get => Get<int>(); set => Set(value); }
 		public string TestType { get => Get<string>(); set => Set(value); }
+		public string BridgeType { get => Get<string>(); set => Set(value); }
 		public string SerialNumberBridge { get => Get<string>(); set => Set(value); }
-		public string SerialNumberHydro { get => Get<string>(); set => Set(value); }
-		public string SerialNumberValve { get => Get<string>(); set => Set(value); }
-		public string BrandNumber { get => Get<string>(); set => Set(value); }
 
 		public int SelectedTypeIndex { get => Get<int>(); set => Set(value); }
 
 		public ObservableCollection<MessageVM> Messages { get; set; }
 
 		public ObservableCollection<LogicItemVM> LogicItems { get; set; }
+		public SensorConfig SensorConfig { get; set; }
 		public bool HasSuccess { get => Get<bool>(); set => Set(value); }
 		public bool HasReplay { get => Get<bool>(); set => Set(value); }
 
@@ -69,29 +77,29 @@ namespace KreativStend.ViewModels
 		double Delta = 0;
 
 		bool OpenDone_L = false;
-        bool OpenDone_R = false;
+		bool OpenDone_R = false;
 		bool CloseDone_L = false;
-        bool CloseDone_R = false;
+		bool CloseDone_R = false;
 		bool Message = false;
 		int Back = 0;
 
 
-        bool FirstCicle = true;
+		bool FirstCicle = true;
 		double StartDavlenie = 0;
 
 		private ViewModelCommandHandler Exit_Handler = new();
 		private ViewModelCommandHandler Cancel_Handler = new();
 		private ViewModelCommandHandler Success_Handler = new();
+		private ViewModelCommandHandler Start_Handler = new();
 		private ViewModelCommandHandler Replay_Handler = new();
 
 		public ICommand Exit_Command => Exit_Handler.Get(On_Exit_Command);
 		public ICommand Cancel_Command => Cancel_Handler.Get(On_Cancel_Command);
-		public ICommand Success_Command => Success_Handler.Get(On_Success_Command, () =>
-			!string.IsNullOrEmpty(SerialNumberBridge) &&
-			!string.IsNullOrEmpty(SerialNumberHydro) &&
-			!string.IsNullOrEmpty(SerialNumberValve) &&
-			!string.IsNullOrEmpty(BrandNumber)
-		);
+		public ICommand Success_Command => Success_Handler.Get(On_Success_Command);
+		public ICommand Start_Command => Start_Handler.Get(On_Start_Command, () =>
+			!string.IsNullOrEmpty(BridgeType) &&
+			!string.IsNullOrEmpty(SerialNumberBridge)
+);
 		public ICommand Replay_Command => Replay_Handler.Get(On_Replay_Command);
 
 		private void On_Exit_Command()
@@ -103,18 +111,31 @@ namespace KreativStend.ViewModels
 		}
 		private async void On_Cancel_Command()
 		{
+			ZeroParams();
+			var SaveStepIndex = StepIndex;
+			StepIndex = 0;
 
-
-			if (testId > 0 && StepIndex > 0)
+			var dlg = new CancelReasonDialog
 			{
-				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
+				Owner = App.Current.MainWindow
+			};
+
+			var res = dlg.ShowDialog();
+
+			string cancelReason = dlg.Reason;
+
+			if (testId > 0 && SaveStepIndex > 0)
+			{
+				var currentStep = LogicItems[SaveStepIndex - 1];
 				await ApiClient.Instance.Create(new Data.StepModel
 				{
 					CreateDate = DateTime.UtcNow,
-					StepType = StepIndex,
+					StepType = SaveStepIndex,
 					Result = false,
 					TestId = testId,
-					Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty
+					Mark = currentStep.StepMark != null ? $"{currentStep.StepMark}" : string.Empty,
+					Info = cancelReason != null ? $"{cancelReason}" : string.Empty,
+					Name = currentStep.Operation != null ? $"{currentStep.Operation}" : string.Empty
 				});
 			}
 
@@ -132,13 +153,16 @@ namespace KreativStend.ViewModels
 			if (testId > 0 && SaveStep > 0)
 			{
 				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
+				var currentStep = LogicItems[StepIndex - 1];
 				await ApiClient.Instance.Create(new Data.StepModel
 				{
 					CreateDate = DateTime.UtcNow,
 					StepType = SaveStep,
 					Result = false,
 					TestId = testId,
-					Info = "Авария"
+					Mark = currentStep.StepMark != null ? $"{currentStep.StepMark}" : string.Empty,
+					Info = "Авария",
+					Name = currentStep.Operation != null ? $"{currentStep.Operation}" : string.Empty
 				});
 			}
 
@@ -148,41 +172,37 @@ namespace KreativStend.ViewModels
 			App.Navigate<NewTestPage>(q => q.DataContext = this);
 		}
 
+		private async void On_Start_Command()
+		{
+			testId = await ApiClient.Instance.Create(new Data.TestModel
+			{
+				CreateDate = DateTime.UtcNow,
+				SerialNumberBridge = SerialNumberBridge,
+				BridgeType = BridgeType,
+				Operator = " ",
+			});
+
+			StepIndex=StartStepIndex+1;
+			Navigator();
+		}
+
 		private async void On_Success_Command()
 		{
-
-			//        if (StepIndex == 0)
-			//        {
-			//testId = await ApiClient.Instance.Create(new Data.TestModel
-			//            {
-			//                CreateDate = DateTime.UtcNow,
-			//                SerialNumberBridge = SerialNumberBridge,
-			//                SerialNumberHydro = SerialNumberHydro,
-			//                SerialNumberValve = SerialNumberValve,
-			//                BrandNumber = BrandNumber,
-			//                TestType = TestType,
-			//                Operator = " ",
-			//            });
-			//        }
-
-			//        if (testId > 0 && StepIndex > 0)
-			//        {
-			//            var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
-			//            await ApiClient.Instance.Create(new Data.StepModel
-			//            {
-			//                CreateDate = DateTime.UtcNow,
-			//                StepType = StepIndex,
-			//                Result = true,
-			//                TestId = testId,
-			//                Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty
-			//            });
-			//        }
-
-
-			//        if (StepIndex == 0)
-			//        {
-			//            LogicItems[0];
-			//        }
+			if (testId > 0 && StepIndex > 0)
+			{
+				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
+				var currentStep = LogicItems[StepIndex - 1];
+				await ApiClient.Instance.Create(new Data.StepModel
+				{
+					CreateDate = DateTime.UtcNow,
+					StepType = StepIndex,
+					Result = true,
+					TestId = testId,
+					Mark = currentStep.StepMark != null ? $"{currentStep.StepMark}" : string.Empty,
+					Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty,
+					Name = currentStep.Operation != null ? $"{currentStep.Operation}" : string.Empty
+				});
+			}
 
 			++StepIndex;
 			Navigator();
@@ -192,13 +212,16 @@ namespace KreativStend.ViewModels
 			if (testId > 0 && StepIndex > 0)
 			{
 				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
+				var currentStep = LogicItems[StepIndex - 1];
 				await ApiClient.Instance.Create(new Data.StepModel
 				{
 					CreateDate = DateTime.UtcNow,
 					StepType = StepIndex,
 					Result = true,
 					TestId = testId,
-					Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty
+					Mark = currentStep.StepMark != null ? $"{currentStep.StepMark}" : string.Empty,
+					Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty,
+					Name = currentStep.Operation != null ? $"{currentStep.Operation}" : string.Empty
 				});
 			}
 
@@ -258,24 +281,24 @@ namespace KreativStend.ViewModels
 					App.ProcessKeys.Brake_L2 = LogicItems[StepIndex - 1].Brake_L2;
 					App.ProcessKeys.Brake_R1 = LogicItems[StepIndex - 1].Brake_R1;
 					App.ProcessKeys.Brake_R2 = LogicItems[StepIndex - 1].Brake_R2;
-					if(LogicItems[StepIndex - 1].Function != "DD_Ger")
+					if (LogicItems[StepIndex - 1].Function != "DD_Ger")
 					{
 						App.ProcessKeys.A3 = LogicItems[StepIndex - 1].A3;
 						App.ProcessKeys.A5 = LogicItems[StepIndex - 1].A5;
 					}
-                    //App.ProcessKeys.Brake = LogicItems[StepIndex - 1].Brake;
-                    if (LogicItems[StepIndex - 1].MotorSpeed != 0)
-                    {
-                        App.ProcessKeys.MotorSpeed = LogicItems[StepIndex - 1].MotorSpeed;
-                        App.ProcessKeys.StartMotor = true;
-                        App.ProcessKeys.StopMotor = false;
-                    }
-                    else
-                    {
-                        App.ProcessKeys.StartMotor = false;
-                        App.ProcessKeys.StopMotor = true;
-                    }
-                    if (LogicItems[StepIndex - 1].Variable != "Kozuh close" && LogicItems[StepIndex - 1].Variable != "Kozuh open")
+					//App.ProcessKeys.Brake = LogicItems[StepIndex - 1].Brake;
+					if (LogicItems[StepIndex - 1].MotorSpeed != 0)
+					{
+						App.ProcessKeys.MotorSpeed = LogicItems[StepIndex - 1].MotorSpeed;
+						App.ProcessKeys.StartMotor = true;
+						App.ProcessKeys.StopMotor = false;
+					}
+					else
+					{
+						App.ProcessKeys.StartMotor = false;
+						App.ProcessKeys.StopMotor = true;
+					}
+					if (LogicItems[StepIndex - 1].Variable != "Kozuh close" && LogicItems[StepIndex - 1].Variable != "Kozuh open")
 					{
 						App.ProcessKeys.Motor_Case_L_Open = LogicItems[StepIndex - 1].Motor_Case_L_Open;
 						App.ProcessKeys.Motor_Case_L_Close = LogicItems[StepIndex - 1].Motor_Case_L_Close;
@@ -336,7 +359,7 @@ namespace KreativStend.ViewModels
 					//{
 					//	FirstCicle = false;
 					//	SaveDate1 = DateTime.Now;
-					//	using (StreamWriter sw = new StreamWriter("TM1.txt", true)) // true = append
+					//	using (StreamWriter sw = new StreamWriter("TM_Work.txt", true)) // true = append
 					//	{
 					//		sw.WriteLine("");
 					//	}
@@ -361,7 +384,7 @@ namespace KreativStend.ViewModels
 
 					//if ((DateNow - SaveDate1).TotalSeconds > 0.5)
 					//{
-					//	using (StreamWriter sw = new StreamWriter("TM1.txt", true)) // true = append
+					//	using (StreamWriter sw = new StreamWriter("TM_Work.txt", true)) // true = append
 					//	{
 					//		sw.WriteLine("24 C " + DateNow.ToString("dd.MM.yyyy HH:mm:ss.fff"));
 					//	}
@@ -395,7 +418,10 @@ namespace KreativStend.ViewModels
 					//	SaveDate4 = DateTime.Now;
 					//}
 
-
+					if (!Message)
+					{
+						Start_Recording();
+					}
 
 					switch (LogicItems[StepIndex - 1].Function)
 					{
@@ -403,18 +429,64 @@ namespace KreativStend.ViewModels
 
 							break;
 						case "Delay":
-							if(!Message)
+							if (!Message)
 							{
-
 								var startTime = DateTime.Now;
 								var endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
-								while (startTime < endTime && !App.ProcessKeys.ERROR && !App.ProcessKeys.ErrorManager.ShouldStopTest)
+
+								while (startTime < endTime && !App.ProcessKeys.ERROR && StepIndex > 0 && !App.ProcessKeys.ErrorManager.ShouldStopTest)
 								{
+									if (Recording)
+									{
+										// Обрабатываем данные датчиков
+										await _stepManager.ProcessDataAsync(CancellationToken.None);
+									}
 									await Task.Delay(250);
 									startTime = DateTime.Now;
 								}
 
-								StepIndex++;
+								if (StepIndex > 0)
+								{
+									await End_Recording();
+
+									StepIndex++;
+									App.Current.Dispatcher.Invoke(() =>
+									{
+										Navigator(true);
+									});
+								}
+							}
+							else
+							{
+								Message = false;
+							}
+							break;
+						case "Message":
+							Message = true;
+							break;
+						case "CheckGer":
+							Message = true;
+							break;
+						case "Editor":
+
+							break;
+						case "End":
+
+							break;
+						case "Counter": //ПЕРЕДЕЛАТЬ
+							if (!Message)
+							{
+								var Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
+								var Target = Math.Round(Coefs.FirstOrDefault(q => q.Index == Convert.ToInt32(LogicItems[StepIndex - 1].Variable)).Coef * Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
+
+								if (App.ProcessKeys.Counters[Convert.ToInt32(LogicItems[StepIndex - 1].Variable)] >= Target)
+								{
+									StepIndex++;
+									App.Current.Dispatcher.Invoke(() =>
+									{
+										Navigator(true);
+									});
+								}
 								App.Current.Dispatcher.Invoke(() =>
 								{
 									Navigator(true);
@@ -424,52 +496,20 @@ namespace KreativStend.ViewModels
 							{
 								Message = false;
 							}
-								break;
-						case "Message":
-							Message = true;
 							break;
-                        case "CheckGer":
-                            Message = true;
-                            break;
-                        case "Editor":
-
-							break;
-						case "End":
-
-							break;
-						case "Counter": //ПЕРЕДЕЛАТЬ
-                            if (!Message)
-                            {
-                                var Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
-                                var Target = Math.Round(Coefs.FirstOrDefault(q => q.Index == Convert.ToInt32(LogicItems[StepIndex - 1].Variable)).Coef * Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
-
-                                if (App.ProcessKeys.Counters[Convert.ToInt32(LogicItems[StepIndex - 1].Variable)] >= Target)
-                                {
-                                    StepIndex++;
-                                    App.Current.Dispatcher.Invoke(() =>
-                                    {
-                                        Navigator(true);
-                                    });
-                                }
-                                App.Current.Dispatcher.Invoke(() =>
-                                {
-                                    Navigator(true);
-                                });
-                            }
-                            else
-                            {
-                                Message = false;
-                            }
-                            break;
-                        case "Delta":
-							if(!Message)
+						case "Delta":
+							if (!Message)
 							{
-
 								var startTime = DateTime.Now;
 								var endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
 								StartDavlenie = App.ProcessKeys.DD_Ger;
-								while (startTime < endTime && !App.ProcessKeys.ERROR && !App.ProcessKeys.ErrorManager.ShouldStopTest)
+								while (startTime < endTime && !App.ProcessKeys.ERROR && StepIndex > 0 && !App.ProcessKeys.ErrorManager.ShouldStopTest)
 								{
+									if (Recording)
+									{
+										// Обрабатываем данные датчиков
+										await _stepManager.ProcessDataAsync(CancellationToken.None);
+									}
 									await Task.Delay(250);
 									startTime = DateTime.Now;
 									Delta = StartDavlenie - App.ProcessKeys.DD_Ger;
@@ -478,23 +518,29 @@ namespace KreativStend.ViewModels
 										Navigator(true);
 									});
 								}
-                                StepIndex++;
-                                App.Current.Dispatcher.Invoke(() =>
-                                {
-                                    Navigator(true);
-                                });
-                            }
+
+								if (StepIndex > 0)
+								{
+									await End_Recording();
+
+									StepIndex++;
+									App.Current.Dispatcher.Invoke(() =>
+									{
+										Navigator(true);
+									});
+								}
+							}
 							else
 							{
 								Message = false;
 							}
-								break;
+							break;
 						case "DD_Ger":
 							//startTime = DateTime.Now;
 							//endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
 							//var StartDavlenie = App.ProcessKeys.DD_Ger;
 							await Task.Delay(500);
-							if(!App.ProcessKeys.L1)
+							if (!App.ProcessKeys.L1)
 							{
 								StepIndex++;
 								App.Current.Dispatcher.Invoke(() =>
@@ -505,7 +551,7 @@ namespace KreativStend.ViewModels
 							//Delta = Convert.ToInt32(StartDavlenie) - Convert.ToInt32(App.ProcessKeys.DD_Ger);
 							break;
 						case "Go Back":
-							if(Back < Convert.ToInt32(LogicItems[StepIndex - 1].Variable))
+							if (Back < Convert.ToInt32(LogicItems[StepIndex - 1].Variable))
 							{
 								Back++;
 								StepIndex = StepIndex - Convert.ToInt32(LogicItems[StepIndex - 1].FunctionArgs);
@@ -518,220 +564,224 @@ namespace KreativStend.ViewModels
 							{
 								StepIndex++;
 								Back = 0;
-                                App.Current.Dispatcher.Invoke(() =>
-                                {
-                                    Navigator(true);
-                                });
-                            }
+								App.Current.Dispatcher.Invoke(() =>
+								{
+									Navigator(true);
+								});
+							}
 							break;
 						case "Pump Out":
-									if (!Message)
-									{
+							if (!Message)
+							{
 
-										await Task.Delay(5000);
-										while (App.ProcessKeys.DD2_1 < Convert.ToInt32(LogicItems[StepIndex - 1].FunctionArgs) && !App.ProcessKeys.ERROR && !App.ProcessKeys.ErrorManager.ShouldStopTest)
+								await Task.Delay(5000);
+								while (App.ProcessKeys.DD2_1 < Convert.ToInt32(LogicItems[StepIndex - 1].FunctionArgs) && !App.ProcessKeys.ERROR && StepIndex > 0 && !App.ProcessKeys.ErrorManager.ShouldStopTest)
+								{
+									await Task.Delay(250);
+									App.Current.Dispatcher.Invoke(() =>
+									{
+										Navigator(true);
+									});
+								}
+								if (StepIndex > 0)
+								{
+									StepIndex++;
+									App.Current.Dispatcher.Invoke(() =>
+									{
+										Navigator(true);
+									});
+								}
+							}
+							else
+							{
+								Message = false;
+							}
+							break;
+						case "Wait Signal":
+							if (!Message)
+							{
+								//startTime = DateTime.Now;
+								//endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
+								switch (LogicItems[StepIndex - 1].Variable)
+								{
+									case "L1":
+										if (!App.ProcessKeys.L1)
 										{
-											await Task.Delay(250);
+											StepIndex++;
 											App.Current.Dispatcher.Invoke(() =>
 											{
 												Navigator(true);
 											});
 										}
-										StepIndex++;
-										App.Current.Dispatcher.Invoke(() =>
+										break;
+									case "L2":
+										if (!App.ProcessKeys.L2)
 										{
-											Navigator(true);
-										});
-									}
-									else
-									{
-										Message = false;
-									}
-									break;
-								case "Wait Signal":
-									if (!Message)
-									{
-										//startTime = DateTime.Now;
-										//endTime = DateTime.Now + TimeSpan.FromSeconds(Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs));
-										switch (LogicItems[StepIndex - 1].Variable)
-										{
-											case "L1":
-												if (!App.ProcessKeys.L1)
-												{
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "L2":
-												if (!App.ProcessKeys.L2)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "R1":
-												if (!App.ProcessKeys.R1)
-												{
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "R2":
-												if (!App.ProcessKeys.R2)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Kozuh close":
-												if (CloseDone_R && CloseDone_L)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Kozuh open":
-												if (OpenDone_L && OpenDone_R)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz All":
-												if (App.ProcessKeys.Brake_L1_Off && App.ProcessKeys.Brake_L2_Off && App.ProcessKeys.Brake_R1_Off && App.ProcessKeys.Brake_R2_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz L1":
-												if (App.ProcessKeys.Brake_L1_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz L2":
-												if (App.ProcessKeys.Brake_L2_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz R1":
-												if (App.ProcessKeys.Brake_R1_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz R2":
-												if (App.ProcessKeys.Brake_R2_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz ne L1":
-												if (!App.ProcessKeys.Brake_L1_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz ne L2":
-												if (!App.ProcessKeys.Brake_L2_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz ne R1":
-												if (!App.ProcessKeys.Brake_R1_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											case "Tormoz ne R2":
-												if (!App.ProcessKeys.Brake_R2_Off)
-												{
-													//App.ProcessKeys.Brake = true;
-													StepIndex++;
-													App.Current.Dispatcher.Invoke(() =>
-													{
-														Navigator(true);
-													});
-												}
-												break;
-											default:
-												break;
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
 										}
-
-									}
-									else
-									{
-										Message = false;
-									}
-									break;
+										break;
+									case "R1":
+										if (!App.ProcessKeys.R1)
+										{
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "R2":
+										if (!App.ProcessKeys.R2)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Kozuh close":
+										if (CloseDone_R && CloseDone_L)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Kozuh open":
+										if (OpenDone_L && OpenDone_R)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz All":
+										if (App.ProcessKeys.Brake_L1_Off && App.ProcessKeys.Brake_L2_Off && App.ProcessKeys.Brake_R1_Off && App.ProcessKeys.Brake_R2_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz L1":
+										if (App.ProcessKeys.Brake_L1_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz L2":
+										if (App.ProcessKeys.Brake_L2_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz R1":
+										if (App.ProcessKeys.Brake_R1_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz R2":
+										if (App.ProcessKeys.Brake_R2_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz ne L1":
+										if (!App.ProcessKeys.Brake_L1_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz ne L2":
+										if (!App.ProcessKeys.Brake_L2_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz ne R1":
+										if (!App.ProcessKeys.Brake_R1_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									case "Tormoz ne R2":
+										if (!App.ProcessKeys.Brake_R2_Off)
+										{
+											//App.ProcessKeys.Brake = true;
+											StepIndex++;
+											App.Current.Dispatcher.Invoke(() =>
+											{
+												Navigator(true);
+											});
+										}
+										break;
+									default:
+										break;
 								}
+
+							}
+							else
+							{
+								Message = false;
+							}
+							break;
+					}
 				}
-				
-			}catch(Exception ex)
+
+			}
+			catch (Exception ex)
 			{ }
 
 			_timer.Change(0, 250);
@@ -739,9 +789,9 @@ namespace KreativStend.ViewModels
 
 		private void ZeroParams()
 		{
-            App.ProcessKeys.M1 = false; ;
-            App.ProcessKeys.M2 = false; ;
-            App.ProcessKeys.M3 = false;
+			App.ProcessKeys.M1 = false; ;
+			App.ProcessKeys.M2 = false; ;
+			App.ProcessKeys.M3 = false;
 
             App.ProcessKeys.K1_M1 = false;
             App.ProcessKeys.K2_M1 = false;
@@ -794,25 +844,25 @@ namespace KreativStend.ViewModels
 					HasSuccess = true;
 					break;
 				case "Delay":
-					if(LogicItems[StepIndex - 1].Variable == "DD")
+					if (LogicItems[StepIndex - 1].Variable == "DD")
 					{
-                        Messages.Add(new EditorMessageVM { Message = $"Давление в системе откачки:{App.ProcessKeys.DD2_2})", Foreground = "Green", Type = MessageTypeEnum.Message });
-                    }
-                    break;
-                case "Wait Signal":
-                    break;
-                case "DD_Ger":
-                    break;
-                case "CheckGer":
-					if(Convert.ToInt32(LogicItems[StepIndex - 1].Variable) > Delta)
+						Messages.Add(new EditorMessageVM { Message = $"Давление в системе откачки:{App.ProcessKeys.DD2_2})", Foreground = "Green", Type = MessageTypeEnum.Message });
+					}
+					break;
+				case "Wait Signal":
+					break;
+				case "DD_Ger":
+					break;
+				case "CheckGer":
+					if (Convert.ToInt32(LogicItems[StepIndex - 1].Variable) > Delta)
 					{
-                        Messages.Add(new EditorMessageVM { Message = $"Давление в системе упало на {Delta}. Было {StartDavlenie})", Foreground = "Green", Type = MessageTypeEnum.Message });
+						Messages.Add(new EditorMessageVM { Message = $"Давление в системе упало на {Delta}. Было {StartDavlenie})", Foreground = "Green", Type = MessageTypeEnum.Message });
 					}
 					else
 					{
-                        Messages.Add(new EditorMessageVM { Message = $"Давление в системе упало на {Delta}. Было {StartDavlenie})", Foreground = "Red", Type = MessageTypeEnum.Message });
-                    }
-						HasSuccess = true;
+						Messages.Add(new EditorMessageVM { Message = $"Давление в системе упало на {Delta}. Было {StartDavlenie})", Foreground = "Red", Type = MessageTypeEnum.Message });
+					}
+					HasSuccess = true;
 					break;
 				case "Editor":
 					Messages.Add(new EditorMessageVM { Message = $"Показания шумомера: ", Unit = LogicItems[StepIndex - 1].FunctionArgs, Type = MessageTypeEnum.Editor });
@@ -821,21 +871,21 @@ namespace KreativStend.ViewModels
 				case "End":
 					On_Exit_Command();
 					break;
-                case "Delta":
-                    string result = string.Format("{0:0.00}", Delta);
-                    Messages.Add(new MessageVM { Message = $"Падение давления:{result}", Type = MessageTypeEnum.Message });
-                    break;
-                case "Counter":
+				case "Delta":
+					string result = string.Format("{0:0.00}", Delta);
+					Messages.Add(new MessageVM { Message = $"Падение давления:{result}", Type = MessageTypeEnum.Message });
+					break;
+				case "Counter":
 					var Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
 					var Target = Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs);
-					var Current = App.ProcessKeys.Counters[Convert.ToInt32(LogicItems[StepIndex - 1].Variable)] 
+					var Current = App.ProcessKeys.Counters[Convert.ToInt32(LogicItems[StepIndex - 1].Variable)]
 						/ Coefs.FirstOrDefault(q => q.Index == Convert.ToInt32(LogicItems[StepIndex - 1].Variable)).Coef;
-					Messages.Add(new MessageVM { Message = $"Залито {Current:f2} из {Target} литров" , Type = MessageTypeEnum.Message });
+					Messages.Add(new MessageVM { Message = $"Залито {Current:f2} из {Target} литров", Type = MessageTypeEnum.Message });
 					break;
-                case "Pump Out":
-                    Messages.Add(new MessageVM { Message = $"Давление в системе {App.ProcessKeys.DD2_1}.		Ждем {LogicItems[StepIndex - 1].FunctionArgs}", Type = MessageTypeEnum.Message });
-                    break;
-            }
+				case "Pump Out":
+					Messages.Add(new MessageVM { Message = $"Давление в системе {App.ProcessKeys.DD2_1}.		Ждем {LogicItems[StepIndex - 1].FunctionArgs}", Type = MessageTypeEnum.Message });
+					break;
+			}
 
 			//switch (StepIndex)
 			//{
@@ -938,15 +988,133 @@ namespace KreativStend.ViewModels
 					};
 			}
 		}
-	}
 
+		private void OnGroupCompleted(SensorGroupResult result)
+		{
+			// Логирование или обновление UI
+			System.Diagnostics.Debug.WriteLine($"Группа {result.GroupName} завершена: {result.SampleCount} выборок");
+		}
+
+		// Обработчик обновления данных (для реального времени)
+		private void OnDataUpdated(SensorGroupResult result)
+		{
+			// Здесь можно обновлять UI (графики, показатели)
+			// Например: Dispatcher.Invoke(() => UpdateCharts(result));
+		}
+
+		private void Start_Recording()
+		{
+			var currentStep = LogicItems[StepIndex - 1];
+
+			// Проверяем, есть ли пресет в этом шаге
+			if (string.IsNullOrEmpty(currentStep.Preset) || currentStep.Preset == "")
+			{
+				// Шаг без записи датчиков
+				Recording = false;
+			}
+			else
+			{
+				Recording = true;
+			}
+
+			// 1. Подготовка шага
+			if (!_stepManager.PrepareStep(currentStep.Preset, SensorConfig))
+			{
+				// Если пресет не загрузился — выполняем шаг без записи
+				Recording = false;
+			}
+			else
+			{
+				Recording = true;
+			}
+
+			if (Recording)
+			{
+				// 2. Запуск записи
+				_stepManager.StartRecording();
+			}
+		}
+		private async Task End_Recording()
+		{
+			var currentStep = LogicItems[StepIndex - 1];
+
+			if (testId > 0 && StepIndex > 0)
+			{
+				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
+				var StepId = await ApiClient.Instance.Create(new Data.StepModel
+				{
+					CreateDate = DateTime.UtcNow,
+					StepType = StepIndex,
+					Result = true,
+					TestId = testId,
+					Mark = currentStep.StepMark != null ? $"{currentStep.StepMark}" : string.Empty,
+					Info = itemEditor != null ? $"{itemEditor.Result}{itemEditor.Unit}" : string.Empty,
+					Name = currentStep.Operation != null ? $"{currentStep.Operation}" : string.Empty
+				});
+
+				if (Recording)
+				{
+					var results = _stepManager.FinalizeRecording();
+					Write_Sensors(StepId, results, StepIndex);
+				}
+				Recording = false;
+			}
+		}
+
+		private async void Write_Sensors(int StepId, List<SensorGroupResult> results, int stepIndex)
+		{
+			foreach (var result in results)
+			{
+				var AggregateValues = result.AggregatedValues;
+				var History = result.History;
+
+				foreach (var value in AggregateValues)
+				{
+					var SensorName = value.Key + "_" + result.AggregationType;
+					var SensorValue = value.Value;
+
+					await ApiClient.Instance.Create(new Data.SensorModel
+					{
+						CreateDate = DateTime.UtcNow,
+						StepId = StepId,
+						Value = SensorValue,
+						SensorName = SensorName,
+						RecordDate = DateTime.UtcNow,
+					});
+				}
+
+				if (History != null)
+				{
+					foreach (var value in History)
+					{
+						var SensorName = value.Key;
+						var Values = value.Value;
+						foreach (var Value2 in Values)
+						{
+							var SensorValue = Value2.Value;
+							var SensorTime = Value2.Timestamp.ToUniversalTime();
+
+							await ApiClient.Instance.Create(new Data.SensorModel
+							{
+								CreateDate = DateTime.UtcNow,
+								StepId = StepId,
+								Value = SensorValue,
+								SensorName = SensorName,
+								RecordDate = SensorTime,
+							});
+						}
+					}
+				}
+			}
+		}
+	}
 	public class MessageVM : WPFHelper.ViewModel
 	{
 		public string Message { get => Get<string>(); set => Set(value); }
 		public StateMessageEnum State { get => Get<StateMessageEnum>(); set => Set(value); }
 		public MessageTypeEnum Type { get => Get<MessageTypeEnum>(); set => Set(value); }
-        public string Foreground { get => Get<string>(); set => Set(value); }
-    }
+		public string Foreground { get => Get<string>(); set => Set(value); }
+	}
 
 	public class EditorMessageVM : MessageVM
 	{
@@ -996,14 +1164,14 @@ namespace KreativStend.ViewModels
 		Error
 	}
 
-    public enum ForegroundEnum
-    {
-        Black,
+	public enum ForegroundEnum
+	{
+		Black,
 		Red,
 		Green
-    }
+	}
 
-    public static class ASCIIChars
+	public static class ASCIIChars
 	{
 		public const char SOH = '\u0001';
 		public const char STX = '\u0002';
