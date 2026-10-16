@@ -32,14 +32,33 @@ namespace KreativStend.ViewModels
 			MotorSpeed = Properties.Settings.Default.MotorSpeed;
 
 			Sensors = new Dictionary<string, double>();
+            Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
 
-			timer = new Timer(On_Tick);
-			timer.Change(0, 500);
-
-            Check = 0;
             MotorButtonText = "Старт";
 
-            Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
+            ClearOilOptions.Clear();
+            WorkOilOptions.Clear();
+
+            if (Settings.Default.ClearOilOptions != null)
+            {
+                foreach (string oil in Settings.Default.ClearOilOptions)
+                    ClearOilOptions.Add(oil);
+            }
+
+            if (Settings.Default.WorkOilOptions != null)
+            {
+                foreach (string oil in Settings.Default.WorkOilOptions)
+                    WorkOilOptions.Add(oil);
+            }
+
+            SelectedClearOil = ClearOilOptions.FirstOrDefault();
+            SelectedWorkOil = WorkOilOptions.FirstOrDefault();
+
+
+
+            timer = new Timer(On_Tick);
+			timer.Change(0, 500);
+
         }
 
 		private SerialPort port;
@@ -190,6 +209,14 @@ namespace KreativStend.ViewModels
         private bool Pump1_Out_Pressed;
         private bool Pump2_Out_Pressed;
         private bool Pump3_Out_Pressed;
+
+        public ObservableCollection<string> ClearOilOptions { get; set; } = new ObservableCollection<string>();
+
+        public ObservableCollection<string> WorkOilOptions { get; set; } = new ObservableCollection<string>();
+
+        public string SelectedClearOil { get => Get<string>(); set => Set(value); }
+
+        public string SelectedWorkOil { get => Get<string>(); set => Set(value); }
 
         private string _motorSpeedInput = "0";
 
@@ -421,47 +448,47 @@ namespace KreativStend.ViewModels
 					Brake_R2_On = false;
 					Brake_R2_Off = false;
 
-					//return;
+					return;
 				}
 
-				//var data = await master.ReadCoilsAsync(1, 0, 19);
-				//var data = (await master.ReadHoldingRegistersAsync(16, 512, 10)).ToBoolArray();
+                var data = await master.ReadCoilsAsync(1, 0, 19);
+                //var data = (await master.ReadHoldingRegistersAsync(16, 512, 10)).ToBoolArray();
 
-				//UM1 = data[0];
-				//UM2 = data[1];
-				//L1 = data[2];
-				//R1 = data[3];
-				//L2 = data[4];
-				//R2 = data[5];
-				//ERROR = data[6];
-				//Case_L_Open = data[7];
-				//Case_L_Close = data[8];
-				//Case_R_Open = data[9];
-				//Case_R_Close = data[10];
-				//Brake_L1_On = data[11];
-				//Brake_L1_Off = data[12];
-				//Brake_L2_On = data[13];
-				//Brake_L2_Off = data[14];
-				//Brake_R1_On = data[15];
-				//Brake_R1_Off = data[16];
-				//Brake_R2_On = data[17];
-				//Brake_R2_Off = data[18];
-
-
-				//Inputs = data;
-
-				//ERROR = data[4];
-
-				//DD1_1 = data[5];
-				//DD1_2 = data[6];
-				//DD2_1 = data[7];
-				//DD2_2 = data[8];
-				//TM_Work = data[9];
-
-				//var data_float = await master.ReadHoldingRegistersAsync(1, 24, 5);
+                UM1 = data[0];
+                UM2 = data[1];
+                L1 = data[2];
+                R1 = data[3];
+                L2 = data[4];
+                R2 = data[5];
+                ERROR = data[6];
+                Case_L_Open = data[7];
+                Case_L_Close = data[8];
+                Case_R_Open = data[9];
+                Case_R_Close = data[10];
+                Brake_L1_On = data[11];
+                Brake_L1_Off = data[12];
+                Brake_L2_On = data[13];
+                Brake_L2_Off = data[14];
+                Brake_R1_On = data[15];
+                Brake_R1_Off = data[16];
+                Brake_R2_On = data[17];
+                Brake_R2_Off = data[18];
 
 
-				if (ERROR)
+                //Inputs = data;
+
+                //ERROR = data[4];
+
+                //DD1_1 = data[5];
+                //DD1_2 = data[6];
+                //DD2_1 = data[7];
+                //DD2_2 = data[8];
+                //TM_Work = data[9];
+
+                //var data_float = await master.ReadHoldingRegistersAsync(1, 24, 5);
+
+
+                if (ERROR)
 				{
 					Ten = false;
 
@@ -514,10 +541,12 @@ namespace KreativStend.ViewModels
 					Motor_Case_R_Open = false;
 				}
 
-                if (ErrorManager.ShouldStopTest)
+                if (!ErrorManager.ShouldStopTest)
                 {
                     HandleServiceButtons();
-
+                }
+                else
+                {
                     Pump1_Work = false;
                     Pump2_Work = false;
                     Pump3_Work = false;
@@ -530,7 +559,7 @@ namespace KreativStend.ViewModels
                 }
 
 
-                var sendData = new bool[32]
+                var sendData = new bool[30]
                 {
                     Ten,
                     M1,
@@ -560,35 +589,19 @@ namespace KreativStend.ViewModels
 					Motor_Case_L_Close,
 					Motor_Case_R_Open,
 					Motor_Case_R_Close,
-					MotorTest,
-					MotorTest2,
 					A3,
 					A5
-					//(bool)(Ten ? 1 : 0),
-                    //(bool)(M1 ? 1u : 0),
-                    //(bool)(M2 ? 1u : 0),
-                    //(bool)(M3 ? 1u : 0),
-                    //(bool)(K1_M1 ? 1u : 0),
-                    //(bool)(K2_M1 ? 1u : 0),
-                    //(bool)(K1_M2 ? 1u : 0),
-                    //(bool)(K2_M2 ? 1 : 0),
-                    //(bool)(K1_M3 ? 1 : 0),
-                    //(bool)(K2_M3 ? 1 : 0)
-                    //(ushort)(Y3 ? 1 : 0),
-                    //(ushort)(Y4 ? 1 : 0),
-                    //(ushort)(Y5 ? 1 : 0),
-                    //(ushort)(Y6 ? 1 : 0),
-                    //(ushort)(Y7 ? 1 : 0),
-                    //(ushort)(Y8 ? 1 : 0),
-                    //(ushort)(Y9 ? 1 : 0),
-                    //(ushort)(Y10 ? 1 : 0)
-                    //(ushort)(Y11 ? 1 : 0)
+                    //Red,
+                    //Yellow,
+                    //Green,
+                    //Beep,
+                    //Block_Dif_Gydro,
                 };
 
-				//await master.WriteMultipleCoilsAsync(1, 32, sendData);
+				await master.WriteMultipleCoilsAsync(1, 30, sendData);//Выше размер
 
-				//var data_float = await master.ReadHoldingRegistersAsync(1, 4, 12);
-				//Counters = await master.ReadHoldingRegistersAsync(1, 16, 2);
+				var data_float = await master.ReadHoldingRegistersAsync(1, 4, 34);
+			    Counters = await master.ReadHoldingRegistersAsync(1, 35, 2);
 
                 for(int i = 0; i < 2; i++)
                 {
@@ -618,19 +631,19 @@ namespace KreativStend.ViewModels
 
                 float[] Floats_From_PLC = new float[17];
 
-				//for (int i = 0; i < data_float.Length / 2; i++)
-				//{
-				//    byte[] floatVals1 = BitConverter.GetBytes(data_float[2 * i]);
-				//    byte[] floatVals2 = BitConverter.GetBytes(data_float[2 * i + 1]);
+                for (int i = 0; i < data_float.Length / 2; i++)
+                {
+                    byte[] floatVals1 = BitConverter.GetBytes(data_float[2 * i]);
+                    byte[] floatVals2 = BitConverter.GetBytes(data_float[2 * i + 1]);
 
-				//    var floatVals = floatVals1.Concat(floatVals2).ToArray();
+                    var floatVals = floatVals1.Concat(floatVals2).ToArray();
 
-				//    float f = BitConverter.ToSingle(floatVals, 0);
+                    float f = BitConverter.ToSingle(floatVals, 0);
 
-				//    Floats_From_PLC[i] = f;
-				//}
+                    Floats_From_PLC[i] = f;
+                }
 
-				DD1_1 = Floats_From_PLC[0];
+                DD1_1 = Floats_From_PLC[0];
 				DD1_2 = Floats_From_PLC[1];
 				DD2_1 = Floats_From_PLC[2];
 				DD2_2 = Floats_From_PLC[3];

@@ -35,5 +35,7 @@ _ReSharper*/
 .DS_Store
 Thumbs.db
 
+*.rar
+*.zip
 # Local files
 На отправку/

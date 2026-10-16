@@ -117,6 +117,9 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Параметр" FontWeight="Bold" Margin="5"/>
@@ -170,6 +173,27 @@
                         <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding CounterToLiter[1], StringFormat={}{0:F2}}"/>
                         <TextBlock Grid.Row="13" Grid.Column="2" Text="Л." Margin="5"/>
 
+                        <Separator Grid.Row="14" Grid.ColumnSpan="3" Margin="0,7"/>
+
+                        <TextBlock Grid.Row="15" Grid.Column="0"
+                           Text="Масло для заливки — чистое"
+                           Margin="5"/>
+
+                        <ComboBox Grid.Row="15" Grid.Column="1"
+                                  ItemsSource="{Binding ClearOilOptions}"
+                                  SelectedItem="{Binding SelectedClearOil, Mode=TwoWay}"
+                                  Margin="4,3"
+                                  MinHeight="30"/>              
+
+                        <TextBlock Grid.Row="16" Grid.Column="0"
+                               Text="Масло для заливки — обкаточное"
+                               Margin="5"/>
+
+                        <ComboBox Grid.Row="16" Grid.Column="1"
+                              ItemsSource="{Binding WorkOilOptions}"
+                              SelectedItem="{Binding SelectedWorkOil, Mode=TwoWay}"
+                              Margin="4,3"
+                              MinHeight="30"/>
                     </Grid>
                 </ScrollViewer>
             </GroupBox>
