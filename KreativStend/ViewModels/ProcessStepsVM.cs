@@ -84,6 +84,10 @@ namespace KreativStend.ViewModels
 		int Back = 0;
 
 
+		// Шаг Wait Torque: на каком шаге и с какого момента ждём
+		int _torqueWaitStep = 0;
+		DateTime _torqueWaitStart = DateTime.Now;
+
 		bool FirstCicle = true;
 		double StartDavlenie = 0;
 
@@ -149,11 +153,16 @@ namespace KreativStend.ViewModels
 
 		private async void On_Error_Command()
 		{
+			// Вызывается из потока таймера. Сначала останавливаем шаги, чтобы следующий тик
+			// не применил выходы шага заново, и только потом пишем в БД (await).
+			SaveStep = StepIndex;
+			StepIndex = 0;
+			App.ProcessKeys.IsTestRunning = false;
 			ZeroParams();
+
 			if (testId > 0 && SaveStep > 0)
 			{
-				var itemEditor = Messages.OfType<EditorMessageVM>().FirstOrDefault();
-				var currentStep = LogicItems[StepIndex - 1];
+				var currentStep = LogicItems[SaveStep - 1];
 				await ApiClient.Instance.Create(new Data.StepModel
 				{
 					CreateDate = DateTime.UtcNow,
@@ -166,10 +175,11 @@ namespace KreativStend.ViewModels
 				});
 			}
 
-            App.ProcessKeys.IsTestRunning = false;
-
-            StepIndex = 0;
-			App.Navigate<NewTestPage>(q => q.DataContext = this);
+			// Навигация только в UI-потоке, иначе InvalidOperationException роняет программу
+			App.Current.Dispatcher.Invoke(() =>
+			{
+				App.Navigate<NewTestPage>(q => q.DataContext = this);
+			});
 		}
 
 		private async void On_Start_Command()
@@ -245,7 +255,8 @@ namespace KreativStend.ViewModels
 
 			try
 			{
-                if (App.ProcessKeys.ErrorManager.ShouldStopTest)
+                // Только во время теста: после завершения таймер продолжает работать
+                if (StepIndex > 0 && (App.ProcessKeys.ErrorManager.ShouldStopTest || App.ProcessKeys.ERROR))
                 {
 					On_Error_Command();
                 }
@@ -281,6 +292,11 @@ namespace KreativStend.ViewModels
 					App.ProcessKeys.Brake_L2 = LogicItems[StepIndex - 1].Brake_L2;
 					App.ProcessKeys.Brake_R1 = LogicItems[StepIndex - 1].Brake_R1;
 					App.ProcessKeys.Brake_R2 = LogicItems[StepIndex - 1].Brake_R2;
+					App.ProcessKeys.Block_Dif_Gydro = LogicItems[StepIndex - 1].Block_Dif_Gydro;
+					App.ProcessKeys.Red = LogicItems[StepIndex - 1].Red;
+					App.ProcessKeys.Yellow = LogicItems[StepIndex - 1].Yellow;
+					App.ProcessKeys.Green = LogicItems[StepIndex - 1].Green;
+					App.ProcessKeys.Beep = LogicItems[StepIndex - 1].Beep;
 					if (LogicItems[StepIndex - 1].Function != "DD_Ger")
 					{
 						App.ProcessKeys.A3 = LogicItems[StepIndex - 1].A3;
@@ -570,6 +586,38 @@ namespace KreativStend.ViewModels
 								});
 							}
 							break;
+						case "Wait Torque":
+							// Ждём, пока |момент| дойдёт до порога из FunctionArgs, затем следующий шаг.
+							// Модуль — потому что при реверсе момент отрицательный.
+							// Не дождались за TorqueWaitTimeout (настройки ошибок) — ошибка 801, тест прерывается.
+							if (!Message)
+							{
+								if (_torqueWaitStep != StepIndex)
+								{
+									_torqueWaitStep = StepIndex;
+									_torqueWaitStart = DateTime.Now;
+								}
+
+								if (Math.Abs(App.ProcessKeys.Torque) >= Convert.ToDouble(LogicItems[StepIndex - 1].FunctionArgs))
+								{
+									_torqueWaitStep = 0;
+									StepIndex++;
+								}
+								else if ((DateTime.Now - _torqueWaitStart).TotalSeconds > SensorLimits.GetDouble("TorqueWaitTimeout"))
+								{
+									_torqueWaitStep = 0;
+									App.ProcessKeys.ErrorManager.RaiseError(801);
+								}
+								App.Current.Dispatcher.Invoke(() =>
+								{
+									Navigator(true);
+								});
+							}
+							else
+							{
+								Message = false;
+							}
+							break;
 						case "Pump Out":
 							if (!Message)
 							{
@@ -809,6 +857,13 @@ namespace KreativStend.ViewModels
             App.ProcessKeys.Ger_Off = false;
             App.ProcessKeys.Block_Dif_12 = false;
             App.ProcessKeys.Block_Dif_24 = false;
+            App.ProcessKeys.Block_Dif_Gydro = false;
+            App.ProcessKeys.A3 = false;
+            App.ProcessKeys.A5 = false;
+            App.ProcessKeys.Red = false;
+            App.ProcessKeys.Yellow = false;
+            App.ProcessKeys.Green = false;
+            App.ProcessKeys.Beep = false;
             App.ProcessKeys.Brake_L1 = false;
             App.ProcessKeys.Brake_L2 = false;
             App.ProcessKeys.Brake_R1 = false;
@@ -820,7 +875,7 @@ namespace KreativStend.ViewModels
             App.ProcessKeys.Motor_Case_R_Close = false;
             App.ProcessKeys.Motor_Case_R_Open = false;
 			App.ProcessKeys.StopMotor = true;
-            App.ProcessKeys.StartMotor = true;
+            App.ProcessKeys.StartMotor = false;
         }
 
 		private void Navigator(bool noNav = false)
@@ -884,6 +939,9 @@ namespace KreativStend.ViewModels
 					break;
 				case "Pump Out":
 					Messages.Add(new MessageVM { Message = $"Давление в системе {App.ProcessKeys.DD2_1}.		Ждем {LogicItems[StepIndex - 1].FunctionArgs}", Type = MessageTypeEnum.Message });
+					break;
+				case "Wait Torque":
+					Messages.Add(new MessageVM { Message = $"Момент {App.ProcessKeys.Torque:f1}. Ждем {LogicItems[StepIndex - 1].FunctionArgs}", Type = MessageTypeEnum.Message });
 					break;
 			}
 

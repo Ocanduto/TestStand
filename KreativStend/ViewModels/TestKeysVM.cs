@@ -33,6 +33,7 @@ namespace KreativStend.ViewModels
 
 			Sensors = new Dictionary<string, double>();
             Coefs = GetCoefChank(Settings.Default.Coefs).ToList();
+            CounterToLiter = new double[2];
 
             MotorButtonText = "Старт";
 
@@ -159,6 +160,18 @@ namespace KreativStend.ViewModels
 		public bool MotorTest2 { get => Get<bool>(); set => Set(value); }
 		public bool A3 { get => Get<bool>(); set => Set(value); }
 		public bool A5 { get => Get<bool>(); set => Set(value); }
+		public bool Block_Dif_Gydro { get => Get<bool>(); set => Set(value); }
+		public bool Red { get => Get<bool>(); set => Set(value); }
+		public bool Yellow { get => Get<bool>(); set => Set(value); }
+		public bool Green { get => Get<bool>(); set => Set(value); }
+		public bool Beep { get => Get<bool>(); set => Set(value); }
+
+		// Фактическое состояние светофора для отправки в ПЛК (см. UpdateSignalLamps).
+		// Red/Yellow/Green/Beep выше — то, что задали шаг скрипта или сервисный режим.
+		public bool Lamp_Red { get => Get<bool>(); set => Set(value); }
+		public bool Lamp_Yellow { get => Get<bool>(); set => Set(value); }
+		public bool Lamp_Green { get => Get<bool>(); set => Set(value); }
+		public bool Lamp_Beep { get => Get<bool>(); set => Set(value); }
 
 
 		bool SaveStart = false;
@@ -426,8 +439,11 @@ namespace KreativStend.ViewModels
 			{
 				if (!IsConnected || master == null)
 				{
+					_lastLiveSeen = DateTime.Now;
+
 					UM1 = false;
 					UM2 = false;
+					UM3 = false;
 					L1 = false;
 					R1 = false;
 					L2 = false;
@@ -451,11 +467,14 @@ namespace KreativStend.ViewModels
 					return;
 				}
 
-                var data = await master.ReadCoilsAsync(1, 0, 19);
+                // Одно чтение всей битовой области slave: входы 0..23 (пишет ПЛК)
+                // и блок выходов 24..63 (пишет ПК, кроме бита Live).
+                var data = await master.ReadCoilsAsync(1, 0, 64);
                 //var data = (await master.ReadHoldingRegistersAsync(16, 512, 10)).ToBoolArray();
 
-                UM1 = data[0];
-                UM2 = data[1];
+                UM1 = data[0];  // UM_TOP — верхний
+                UM3 = data[1];  // UM_BOT — нижний
+                UM2 = data[19]; // средний, в ПЛК добавить в %QX6.3.0.3
                 L1 = data[2];
                 R1 = data[3];
                 L2 = data[4];
@@ -465,14 +484,13 @@ namespace KreativStend.ViewModels
                 Case_L_Close = data[8];
                 Case_R_Open = data[9];
                 Case_R_Close = data[10];
-                Brake_L1_On = data[11];
+                // Brake_*_On (11, 13, 15, 17) больше не читаются: датчик тормоза только Off
                 Brake_L1_Off = data[12];
-                Brake_L2_On = data[13];
                 Brake_L2_Off = data[14];
-                Brake_R1_On = data[15];
                 Brake_R1_Off = data[16];
-                Brake_R2_On = data[17];
                 Brake_R2_Off = data[18];
+
+                CheckLive(data[LiveCoil]);
 
 
                 //Inputs = data;
@@ -490,6 +508,12 @@ namespace KreativStend.ViewModels
 
                 if (ERROR)
 				{
+					// Аварийная кнопка: липкая ошибка уровня 1, тест прерывается в ProcessStepsVM
+					ErrorManager.RaiseError(ErrorManager.EmergencyStopCode);
+
+					StartMotor = false;
+					StopMotor = true;
+
 					Ten = false;
 
 					M1 = false;
@@ -514,6 +538,7 @@ namespace KreativStend.ViewModels
 					Brake_R2 = false;
 					Block_Dif_12 = false;
 					Block_Dif_24 = false;
+					Block_Dif_Gydro = false;
 					Ger_On = false;
 					Ger_Off = false;
 					Motor_Case_L_Open = false;
@@ -522,6 +547,8 @@ namespace KreativStend.ViewModels
 					Motor_Case_R_Close = false;
 					MotorTest = false;
 					MotorTest2 = false;
+					A3 = false;
+					A5 = false;
 				}
 
 				if (Case_L_Close)
@@ -558,9 +585,21 @@ namespace KreativStend.ViewModels
                     Pump3_Out = false;
                 }
 
+                UpdateSignalLamps();
 
-                var sendData = new bool[30]
+                // Блок выходов ПК: coils 24..63 (байты %QB6.4..%QB6.8), индекс = coil - 24
+                var sendData = new bool[40]
                 {
+                    // %QB6.4, coils 24..31
+                    Lamp_Red,           // 24
+                    Lamp_Yellow,        // 25
+                    Lamp_Green,         // 26
+                    Lamp_Beep,          // 27
+                    false,              // 28 Live: ПК всегда пишет 0, ПЛК ставит 1
+                    false,              // 29 резерв
+                    false,              // 30 резерв
+                    false,              // 31 резерв
+                    // %QB6.5, coils 32..39
                     Ten,
                     M1,
                     M2,
@@ -569,6 +608,7 @@ namespace KreativStend.ViewModels
                     K2_M1,
                     K1_M2,
                     K2_M2,
+                    // %QB6.6, coils 40..47
                     K1_M3,
                     K2_M3,
                     Q_1_Work,
@@ -577,6 +617,7 @@ namespace KreativStend.ViewModels
 					Q_1_Clear,
 					Q_2_Clear,
 					Q_3_Clear,
+					// %QB6.7, coils 48..55
 					Brake_L1,
 					Brake_L2,
 					Brake_R1,
@@ -584,29 +625,27 @@ namespace KreativStend.ViewModels
 					Block_Dif_12,
 					Block_Dif_24,
 					Ger_On,
-					Ger_Off,
+					Block_Dif_Gydro,    // 55, бывший Ger_Off
+					// %QB6.8, coils 56..63
 					Motor_Case_L_Open,
 					Motor_Case_L_Close,
 					Motor_Case_R_Open,
 					Motor_Case_R_Close,
+					false,              // 60 резерв (бывший MotorTest)
+					false,              // 61 резерв (бывший MotorTest2)
 					A3,
 					A5
-                    //Red,
-                    //Yellow,
-                    //Green,
-                    //Beep,
-                    //Block_Dif_Gydro,
                 };
 
-				await master.WriteMultipleCoilsAsync(1, 30, sendData);//Выше размер
+				await master.WriteMultipleCoilsAsync(1, 24, sendData);
 
-				var data_float = await master.ReadHoldingRegistersAsync(1, 4, 34);
-			    Counters = await master.ReadHoldingRegistersAsync(1, 35, 2);
+				// Регистры с 4: группа float по 2 регистра (младшее слово первым), сразу за ней CM1, CM2
+				var registers = await master.ReadHoldingRegistersAsync(1, 4, (ushort)(PlcFloatCount * 2 + 2));
+				var data_float = registers.Take(PlcFloatCount * 2).ToArray();
+			    Counters = registers.Skip(PlcFloatCount * 2).Take(2).ToArray();
 
-                for(int i = 0; i < 2; i++)
-                {
-                    CounterToLiter[i] = Counters[i] / Coefs.FirstOrDefault(q => q.Index == i).Coef;
-                }
+                // Новый массив, а не запись в элементы: иначе привязки CounterToLiter[i] не обновятся
+                CounterToLiter = new[] { CountsToLiters(0), CountsToLiters(1) };
 
                 if (Counters != null && Counters.Length >= 2)
                 {
@@ -648,8 +687,10 @@ namespace KreativStend.ViewModels
 				DD2_1 = Floats_From_PLC[2];
 				DD2_2 = Floats_From_PLC[3];
 				TM_Work = Floats_From_PLC[4];
-				DD_Ger = Floats_From_PLC[5];
-				TM_Clear = Floats_From_PLC[6];
+				TM_Clear = Floats_From_PLC[5];
+				DD_Ger = Floats_From_PLC[6];
+
+				// Пока PlcFloatCount = 7, вибродатчики не читаются и V_* остаются 0
 				V_X_1 = Floats_From_PLC[7];
 				V_Y_1 = Floats_From_PLC[8];
 				V_Z_1 = Floats_From_PLC[9];
@@ -686,8 +727,8 @@ namespace KreativStend.ViewModels
 				Sensors["Torque"] = Torque;
 
 
-				Sensors["CM1"] = Math.Round(Counters[0] / Coefs.FirstOrDefault(q => q.Index == 0).Coef, 2);
-				Sensors["CM2"] = Math.Round(Counters[1] / Coefs.FirstOrDefault(q => q.Index == 1).Coef, 2);
+				Sensors["CM1"] = Math.Round(CounterToLiter[0], 2);
+				Sensors["CM2"] = Math.Round(CounterToLiter[1], 2);
 			}
 			catch (Exception e)
 			{
@@ -1247,6 +1288,78 @@ namespace KreativStend.ViewModels
                     setK1(false);
                     setK2(false);
                 }
+            }
+        }
+
+        // Бит Live (coil 28, %QX6.4.0.4): ПЛК ставит 1, ПК в каждой записи пишет 0.
+        // Если ПК не видит 1 дольше LiveTimeout — ПЛК не работает (STOP, зависание).
+        private const int LiveCoil = 28;
+        private static readonly TimeSpan LiveTimeout = TimeSpan.FromSeconds(3);
+
+        // Включить, когда Live будет прописан в ПЛК. Пока бита нет, проверка дала бы 204 постоянно.
+        private static readonly bool LiveCheckEnabled = false;
+
+        // Сколько float в группе slave перед CM1/CM2, порядок:
+        // DD1_1, DD1_2, DD2_1, DD2_2, TM_Work, TM_Clear, DD_Ger, V_X_1..V_T_1, V_X_2..V_T_2.
+        // 7 — без вибродатчиков (CM1 = рег. 18, CM2 = 19). С вибродатчиками будет 17 (CM1 = 38, CM2 = 39).
+        private const int PlcFloatCount = 7;
+
+        // Импульсы расходомера в литры по коэффициенту из настроек Coefs ("индекс:импульсов_на_литр").
+        private double CountsToLiters(int index)
+        {
+            var coef = Coefs.FirstOrDefault(q => q.Index == index)?.Coef ?? 0;
+            return coef > 0 ? Counters[index] / coef : 0;
+        }
+
+        private DateTime _lastLiveSeen = DateTime.Now;
+
+        private void CheckLive(bool live)
+        {
+            if (!LiveCheckEnabled)
+                return;
+
+            if (live)
+            {
+                _lastLiveSeen = DateTime.Now;
+                ErrorManager.ClearError(204);
+            }
+            else if (DateTime.Now - _lastLiveSeen > LiveTimeout)
+            {
+                ErrorManager.RaiseError(204);
+            }
+        }
+
+        // Приоритет: аварийная кнопка (красный + звук) > ошибки уровня 1–2 (красный) >
+        // светофор из шага/сервиса > зелёный, если ничего не задано.
+        private void UpdateSignalLamps()
+        {
+            if (ERROR)
+            {
+                Lamp_Red = true;
+                Lamp_Yellow = false;
+                Lamp_Green = false;
+                Lamp_Beep = true;
+            }
+            else if (ErrorManager.ShouldStopTest)
+            {
+                Lamp_Red = true;
+                Lamp_Yellow = false;
+                Lamp_Green = false;
+                Lamp_Beep = false;
+            }
+            else if (Red || Yellow || Green || Beep)
+            {
+                Lamp_Red = Red;
+                Lamp_Yellow = Yellow;
+                Lamp_Green = Green;
+                Lamp_Beep = Beep;
+            }
+            else
+            {
+                Lamp_Red = false;
+                Lamp_Yellow = false;
+                Lamp_Green = true;
+                Lamp_Beep = false;
             }
         }
 

@@ -25,6 +25,7 @@ namespace KreativStend.ViewModels
             Functions.Add("Delta");
             Functions.Add("DD_Ger");
             Functions.Add("Pump Out");
+            Functions.Add("Wait Torque");
             Functions.Add("Go Back");
             Functions.Add("CheckGer");
         }

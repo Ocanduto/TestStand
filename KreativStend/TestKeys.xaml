@@ -242,9 +242,18 @@
                             </UniformGrid>
                         </GroupBox>
                         <GroupBox Header="Блокировка дифференциала" Margin="4">
-                            <UniformGrid Columns="2">
+                            <UniformGrid Columns="3">
                                 <ToggleButton Content="12 В" IsChecked="{Binding Block_Dif_12}" Style="{StaticResource TallToggle}"/>
                                 <ToggleButton Content="24 В" IsChecked="{Binding Block_Dif_24}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Гидравлическая" IsChecked="{Binding Block_Dif_Gydro}" Style="{StaticResource TallToggle}"/>
+                            </UniformGrid>
+                        </GroupBox>
+                        <GroupBox Header="Светофор" Margin="4">
+                            <UniformGrid Columns="4">
+                                <ToggleButton Content="Красный" IsChecked="{Binding Red}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Жёлтый" IsChecked="{Binding Yellow}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Зелёный" IsChecked="{Binding Green}" Style="{StaticResource TallToggle}"/>
+                                <ToggleButton Content="Звук" IsChecked="{Binding Beep}" Style="{StaticResource TallToggle}"/>
                             </UniformGrid>
                         </GroupBox>
                         <GroupBox Header="Герметичность" Margin="4">
@@ -312,11 +321,16 @@
                             <ToggleButton Content="Brake_R2" IsChecked="{Binding Brake_R2}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Блокировка 12" IsChecked="{Binding Block_Dif_12}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Блокировка 24" IsChecked="{Binding Block_Dif_24}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Блокировка гидро" IsChecked="{Binding Block_Dif_Gydro}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Герметизация Вкл." IsChecked="{Binding Ger_On}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Открыть кожух L" IsChecked="{Binding Motor_Case_L_Open}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Закрыть кожух L" IsChecked="{Binding Motor_Case_L_Close}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Открыть кожух R" IsChecked="{Binding Motor_Case_R_Open}" Style="{StaticResource ManagementToggle}"/>
                             <ToggleButton Content="Закрыть кожух R" IsChecked="{Binding Motor_Case_R_Close}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Красный" IsChecked="{Binding Red}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Жёлтый" IsChecked="{Binding Yellow}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Зелёный" IsChecked="{Binding Green}" Style="{StaticResource ManagementToggle}"/>
+                            <ToggleButton Content="Звук" IsChecked="{Binding Beep}" Style="{StaticResource ManagementToggle}"/>
                         </UniformGrid>
                     </ScrollViewer>
                 </GroupBox>

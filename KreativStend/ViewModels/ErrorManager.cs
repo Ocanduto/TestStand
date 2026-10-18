@@ -13,13 +13,16 @@ namespace KreativStend.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        // Нажата аварийная кнопка (ERROR от ПЛК).
+        public const int EmergencyStopCode = 1;
+
         // Запуск разрешён, если нет активных ошибок тиров 1 и 2,
-        // которые оператор не игнорирует.
+        // которые оператор не игнорирует. Аварийную кнопку игнорировать нельзя.
         public bool CanStartTest =>
             !Errors.Any(e =>
                 e.IsActive &&
                 e.Tier <= 2 &&
-                !e.Ignore);
+                (!e.Ignore || e.Code == EmergencyStopCode));
 
         // Нужно остановить обкатку, если появилась
         // активная и не игнорируемая ошибка тира 1 или 2.
@@ -64,6 +67,8 @@ namespace KreativStend.ViewModels
         private void RegisterErrors()
         {
             // Уровень 1 — оборудование и подключения
+            AddError(EmergencyStopCode, 1, "Нажата аварийная кнопка");
+
             AddError(101, 1, "Датчик DD1_1: нет связи");
             AddError(102, 1, "Датчик DD1_2: нет связи");
             AddError(103, 1, "Датчик DD2_1: нет связи");
@@ -75,6 +80,7 @@ namespace KreativStend.ViewModels
             AddError(201, 1, "Нет связи с PLC");
             AddError(202, 1, "Нет связи с мотором по RS485");
             AddError(203, 1, "Нет связи с частотником по RS232");
+            AddError(204, 1, "ПЛК не отвечает (бит Live)");
 
             AddError(301, 1, "Нет связи с вибродатчиком 1");
             AddError(302, 1, "Нет связи с вибродатчиком 2");
@@ -92,6 +98,9 @@ namespace KreativStend.ViewModels
 
             AddError(701, 3, "Ошибка расходомера №1");
             AddError(702, 3, "Ошибка расходомера №2");
+
+            // Уровень 1 — шаги скрипта
+            AddError(801, 1, "Момент не достигнут за отведённое время (Wait Torque)");
         }
 
         private void AddError(int code, int tier, string message)

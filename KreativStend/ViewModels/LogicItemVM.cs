@@ -46,6 +46,11 @@
         public bool Block_Dif_24 { get => Get<bool>(); set => Set(value); }
         public bool A3 { get => Get<bool>(); set => Set(value); }
         public bool A5 { get => Get<bool>(); set => Set(value); }
+        public bool Block_Dif_Gydro { get => Get<bool>(); set => Set(value); }
+        public bool Red { get => Get<bool>(); set => Set(value); }
+        public bool Yellow { get => Get<bool>(); set => Set(value); }
+        public bool Green { get => Get<bool>(); set => Set(value); }
+        public bool Beep { get => Get<bool>(); set => Set(value); }
 		public string Preset { get => Get<string>(); set => Set(value); }
 		public string StepMark { get => Get<string>(); set => Set(value); }
 	}

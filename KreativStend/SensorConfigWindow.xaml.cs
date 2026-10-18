@@ -65,6 +65,7 @@ namespace KreativStend
             ["FlowmeterMinPulses"] = "100",
             ["FlowmeterStartDelay"] = "2000",
             ["FlowmeterSampleInterval"] = "1000",
+            ["TorqueWaitTimeout"] = "10",
             ["FilterCheckDelay"] = "5000",
             ["Filter1MaxPressureDifference"] = "0",
             ["Filter2MaxPressureDifference"] = "0",
@@ -227,6 +228,7 @@ namespace KreativStend
                 "FlowmeterMinPulses",
                 "FlowmeterStartDelay",
                 "FlowmeterSampleInterval",
+                "TorqueWaitTimeout",
                 "FilterCheckDelay"
             };
 

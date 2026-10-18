@@ -47,6 +47,8 @@ namespace KreativStend
             ["FlowmeterStartDelay"] = "2000",
             ["FlowmeterSampleInterval"] = "1000",
 
+            ["TorqueWaitTimeout"] = "10",
+
             ["V1_X_Min"] = "-999",
             ["V1_X_Max"] = "999",
             ["V1_Y_Min"] = "-999",

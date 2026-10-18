@@ -73,6 +73,11 @@
                 <DataGridCheckBoxColumn Header="Dif_24" MinWidth="30" Binding="{Binding Block_Dif_24, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridCheckBoxColumn Header="A3" MinWidth="30" Binding="{Binding A3, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridCheckBoxColumn Header="A5" MinWidth="30" Binding="{Binding A5, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Dif_Gydro" MinWidth="30" Binding="{Binding Block_Dif_Gydro, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Красный" MinWidth="30" Binding="{Binding Red, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Жёлтый" MinWidth="30" Binding="{Binding Yellow, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Зелёный" MinWidth="30" Binding="{Binding Green, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
+                <DataGridCheckBoxColumn Header="Звук" MinWidth="30" Binding="{Binding Beep, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridTextColumn Header="Мотор" MinWidth="30" Binding="{Binding MotorSpeed, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridTextColumn Header="Пресет" MinWidth="30" Binding="{Binding Preset, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>
                 <DataGridTextColumn Header="Метка шага" MinWidth="30" Binding="{Binding StepMark, UpdateSourceTrigger=PropertyChanged}" CanUserSort ="False"/>

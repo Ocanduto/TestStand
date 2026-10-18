@@ -55,7 +55,9 @@ namespace KreativStend
                 Owner = this
             };
 
-            window.ShowDialog();
+            // Сохранённые лимиты применяются сразу, без перезапуска программы
+            if (window.ShowDialog() == true)
+                SensorLimits.Reload();
         }
     }
 }
